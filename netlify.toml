@@ -1,0 +1,18 @@
+[build]
+  command   = "npm run build"
+  publish   = "dist"
+
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Prevent the site from being framed externally
+    X-Frame-Options        = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy        = "strict-origin-when-cross-origin"
+    # Tell search engines not to index (belt + suspenders alongside <meta>)
+    X-Robots-Tag           = "noindex, nofollow"
