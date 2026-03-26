@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   Play, Pause, Info, Search, X, ChevronRight, ChevronLeft, Clock, Bookmark,
-  Settings, Monitor, Film, ArrowLeft, Trash2, LayoutGrid, Star, Shuffle,
-  User, Filter, Dribbble, Server, ChevronDown, Sparkles, Send, Maximize,
-  Minimize, VolumeX, Volume2, RefreshCw, Square, LogOut, Sidebar,
-  AlertCircle, Plus, Check, Globe, SkipForward, TrendingUp, Zap,
-  Eye, EyeOff, Mail, Lock, History
+  Settings, Monitor, Film, ArrowLeft, Trash2, LayoutGrid, User, Dribbble, 
+  Server, Maximize, Minimize, VolumeX, Volume2, RefreshCw, Square, LogOut, 
+  Sidebar, AlertCircle, Eye, EyeOff, Mail, Lock, History
 } from 'lucide-react';
 
 import { initializeApp } from 'firebase/app';
@@ -16,8 +14,7 @@ import {
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut, 
   sendPasswordResetEmail,
-  signInWithCustomToken,
-  signInAnonymously
+  signInWithCustomToken
 } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 
@@ -62,7 +59,7 @@ const DEFAULT_CC = { size:'1.1rem', bg:'rgba(0,0,0,0.82)', color:'#fff', font:'s
 const DEFAULT_VP = { autoNext:true, episodeList:true };
 const DEFAULT_SK = { enabled:true, showIntro:true, showRecap:true, showCredits:true, showPreview:false, autoSkip:false, buttonDuration:7 };
 const DEFAULT_SETTINGS = {
-  apiKey:DEFAULT_TMDB, omdbKey:DEFAULT_OMDB, sourceKey:'videasy', geminiKey:'',
+  apiKey:DEFAULT_TMDB, omdbKey:DEFAULT_OMDB, sourceKey:'videasy',
   algoPrefs:{excluded:[],boosted:[]}, cc:DEFAULT_CC, vp:DEFAULT_VP, skip:DEFAULT_SK,
 };
 
@@ -177,17 +174,9 @@ const G=()=>(
     .lp{animation:pulse3 1.5s ease-in-out infinite;}
     .sp{animation:spin 1s linear infinite;}
     
-    /* Dynamic Reactive Text - Inverts color perfectly based on background */
-    .reactive-text { 
-       mix-blend-mode: difference; 
-       color: #fff; 
-    }
-    .reactive-logo { 
-       mix-blend-mode: difference; 
-       filter: brightness(1.2); 
-    }
+    .reactive-text { mix-blend-mode: difference; color: #fff; }
+    .reactive-logo { mix-blend-mode: difference; filter: brightness(1.2); }
     
-    /* Number font perfectly outlined without overlapping internal lines */
     .rank-number text {
       font-family: 'Arial Black', Impact, sans-serif;
       font-weight: 900;
@@ -398,11 +387,11 @@ const TopNav=React.memo(({tab,setTab,focus,user,isGuest})=>{
 });
 
 // ─── MEDIA CARDS ────────────────────────────────────────────────────────────
-const PosterCard=React.memo(({media,onClick})=>{
+const PosterCard=React.memo(({media,onClick,isReplay})=>{
   const[loaded,setLoaded]=useState(false);
   const src=media.poster_path?`${IMG}w342${media.poster_path}`:null;
   const title=media.title||media.name||'';
-  const year=fmtYear(media.release_date||media.first_air_date);
+  const dateStr = isReplay ? fmtDate(media.release_date||media.first_air_date) : fmtYear(media.release_date||media.first_air_date);
 
   return(
     <div onClick={()=>onClick(media)} tabIndex={0} onKeyDown={e=>{if(e.key==='Enter')onClick(media);}}
@@ -424,9 +413,9 @@ const PosterCard=React.memo(({media,onClick})=>{
       <div className="px-1 flex flex-col">
         <h4 className="text-white/95 font-bold text-[14px] md:text-[15px] leading-snug truncate group-hover:text-white transition-colors">{title}</h4>
         <div className="flex items-center gap-1.5 text-white/50 text-[12px] md:text-[13px] font-medium mt-1">
-           {year&&<span>{year}</span>}
-           {year && media.vote_average > 0 && <span>•</span>}
-           {media.vote_average > 0 && <span className="flex items-center text-white/70 font-semibold">{Math.round(media.vote_average * 10)}% Score</span>}
+           {dateStr&&<span>{dateStr}</span>}
+           {dateStr && !isReplay && media.vote_average > 0 && <span>•</span>}
+           {!isReplay && media.vote_average > 0 && <span className="flex items-center text-white/70 font-semibold">{Math.round(media.vote_average * 10)}% Score</span>}
         </div>
       </div>
     </div>
@@ -434,7 +423,7 @@ const PosterCard=React.memo(({media,onClick})=>{
 });
 
 // ─── CONTENT ROW ─────────────────────────────────────────────────────────────
-const Row=React.memo(({title,url,onCard,apiKey,ranking=false,data=null})=>{
+const Row=React.memo(({title,url,onCard,apiKey,ranking=false,data=null,isReplay=false})=>{
   const[items,setItems]=useState([]);
   const[fetched,setFetched]=useState(false);
   const[vis,setVis]=useState(false);
@@ -466,14 +455,13 @@ const Row=React.memo(({title,url,onCard,apiKey,ranking=false,data=null})=>{
 
   const scrl=d=>{if(sr.current)sr.current.scrollBy({left:d==='r'?sr.current.clientWidth*.75:-sr.current.clientWidth*.75,behavior:'smooth'});};
 
-  // Clone items for seamlessly bidirectional scroll (enabled for all rows including ranking)
+  // Clone items for seamlessly bidirectional scroll
   const isInfinite = items.length > 4;
   const disp = isInfinite ? [...items, ...items, ...items] : items;
   
   const handleScroll = useCallback((e) => {
     if (!isInfinite || isDragging || !sr.current) return;
     const s = e.target;
-    // Calculate exact width of one full set of items using their offset positions
     const firstChild = s.children[0];
     const nextSetChild = s.children[items.length];
     if (!firstChild || !nextSetChild) return;
@@ -573,7 +561,7 @@ const Row=React.memo(({title,url,onCard,apiKey,ranking=false,data=null})=>{
                     </text>
                   </svg>
                 )}
-                <PosterCard media={m} onClick={() => handleCardClick(m)}/>
+                <PosterCard media={m} onClick={() => handleCardClick(m)} isReplay={isReplay}/>
              </div>
           )}
         </div>
@@ -760,22 +748,20 @@ const GridView=React.memo(({apiKey,type,genreId,onCard})=>{
 });
 
 // ─── SEARCH VIEW ─────────────────────────────────────────────────────────────
-const SearchView=React.memo(({apiKey,geminiKey,history,onCard})=>{
-  const[mode,setMode]=useState('standard');
+const SearchView=React.memo(({apiKey,history,onCard})=>{
   const[q,setQ]=useState('');
   const dq=useDebounce(q,500);
   const[res,setRes]=useState([]),[pg,setPg]=useState(1),[more,setMore]=useState(true),[loading,setLoading]=useState(false);
   const[fType,setFType]=useState('all'),[fSort,setFSort]=useState('popularity.desc');
   const[fGenre,setFGenre]=useState(''),[fYear,setFYear]=useState(''),[fRating,setFRating]=useState('');
   
-  const[aiQ,setAiQ]=useState(''),[aiLoad,setAiLoad]=useState(false),[aiRes,setAiRes]=useState(null),[aiErr,setAiErr]=useState('');
   const obs=useRef();
   const cy=new Date().getFullYear();
   const yrs=[...Array(40)].map((_,i)=>cy-i).map(String);
 
-  useEffect(()=>{setRes([]);setPg(1);setMore(true);},[dq,fType,fSort,fGenre,fYear,fRating,mode]);
+  useEffect(()=>{setRes([]);setPg(1);setMore(true);},[dq,fType,fSort,fGenre,fYear,fRating]);
   useEffect(()=>{
-    let ok=true;if(mode!=='standard')return;
+    let ok=true;
     (async()=>{
       setLoading(true);
       try{
@@ -783,150 +769,90 @@ const SearchView=React.memo(({apiKey,geminiKey,history,onCard})=>{
         if(!dq){
           const types=fType==='all'?['movie','tv']:[fType];
           const urls=[];
-          types.forEach(t=>{let u=`${BASE}/discover/${t}?api_key=${apiKey}&sort_by=${fSort}&page=${pg}`;if(fGenre)u+=`&with_genres=${fGenre}`;if(fYear)u+=`&${t==='movie'?'primary_release_year':'first_air_date_year'}=${fYear}`;if(fRating)u+=`&vote_average.gte=${fRating}`;urls.push(u,u.replace(`page=${pg}`,`page=${pg+1}`));});
+          types.forEach(t=>{
+            let u=`${BASE}/discover/${t}?api_key=${apiKey}&sort_by=${fSort}&page=${pg}`;
+            if(fGenre)u+=`&with_genres=${fGenre}`;
+            if(fYear)u+=`&${t==='movie'?'primary_release_year':'first_air_date_year'}=${fYear}`;
+            if(fRating)u+=`&vote_average.gte=${fRating}&vote_count.gte=50`;
+            urls.push(u,u.replace(`page=${pg}`,`page=${pg+1}`));
+          });
           const rs=await Promise.all(urls.map(u=>fetch2(u)));if(!ok)return;
           rs.forEach(d=>{if(d.results)nr.push(...d.results.filter(i=>i.poster_path).map(i=>({...i,media_type:i.media_type||(fType==='all'?'movie':fType)})));tp=Math.max(tp,d.total_pages||1);});
         }else{
           const cq=dq.replace(/ movies?| films?| shows?| series/gi,'').trim();
           const rs=await Promise.all([1,2,3].map(n=>fetch2(`${BASE}/search/multi?api_key=${apiKey}&query=${encodeURIComponent(cq)}&page=${pg+n-1}`)));if(!ok)return;
-          rs.forEach(d=>{if(d.results){let v=d.results.filter(i=>(i.media_type==='movie'||i.media_type==='tv')&&i.poster_path);if(fType!=='all')v=v.filter(i=>i.media_type===fType);if(fRating)v=v.filter(i=>(i.vote_average||0)>=parseFloat(fRating));nr.push(...v);tp=Math.max(tp,d.total_pages||1);}});
+          rs.forEach(d=>{
+            if(d.results){
+              let v=d.results.filter(i=>(i.media_type==='movie'||i.media_type==='tv')&&i.poster_path);
+              if(fType!=='all')v=v.filter(i=>i.media_type===fType);
+              if(fRating)v=v.filter(i=>(i.vote_average||0)>=parseFloat(fRating));
+              if(fYear)v=v.filter(i=>(i.release_date||i.first_air_date||'').startsWith(fYear));
+              if(fGenre)v=v.filter(i=>(i.genre_ids||[]).includes(parseInt(fGenre)));
+              nr.push(...v);
+              tp=Math.max(tp,d.total_pages||1);
+            }
+          });
         }
         const dd=Array.from(new Map(nr.map(i=>[i.id,i])).values()).sort((a,b)=>fSort.includes('vote_average')?(b.vote_average||0)-(a.vote_average||0):(b.popularity||0)-(a.popularity||0));
         setRes(p=>pg===1?dd:[...p,...dd.filter(i=>!p.some(x=>x.id===i.id))]);
         if(pg>=tp||pg>=40)setMore(false);
       }catch{}finally{if(ok)setLoading(false);}
     })();return()=>{ok=false;};
-  },[dq,apiKey,fType,fSort,fGenre,fYear,fRating,pg,mode]);
+  },[dq,apiKey,fType,fSort,fGenre,fYear,fRating,pg]);
 
-  const lastRef=useCallback(n=>{if(loading||mode!=='standard')return;if(obs.current)obs.current.disconnect();obs.current=new IntersectionObserver(([e])=>{if(e.isIntersecting&&more)setPg(p=>p+(dq?3:2));},{rootMargin:'600px'});if(n)obs.current.observe(n);},[loading,more,dq,mode]);
-
-  const fetchGemini = async (prompt, key, retries = 5) => {
-     const delays = [1000, 2000, 4000, 8000, 16000];
-     for (let i = 0; i < retries; i++) {
-        try {
-            const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${key}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-            });
-            if (r.ok) return await r.json();
-            if (i === retries - 1) throw new Error(`HTTP ${r.status} ${r.statusText}`);
-        } catch (e) {
-            if (i === retries - 1) throw e;
-        }
-        await new Promise(res => setTimeout(res, delays[i]));
-     }
-  };
-
-  const handleAi=async evt=>{
-    evt.preventDefault();if(!aiQ.trim()||aiLoad)return;
-    if(!geminiKey){setAiErr('Add your Gemini API key in Settings → API Keys.');return;}
-    setAiLoad(true);setAiErr('');setAiRes(null);
-    
-    try{
-      const prompt = `User wants: "${aiQ}"\nWatch history: ${history.slice(0,8).map(h=>h.title||h.name).join(', ')||'none'}\n\nRespond with ONLY valid JSON: {"text_response":"your recommendation intro (2 sentences)","items":[{"type":"movie or tv","search_query":"title to search","reason":"one sentence why"}]}`;
-      const raw = await fetchGemini(prompt, geminiKey);
-      const txt=raw.candidates?.[0]?.content?.parts?.[0]?.text||'';
-      const jm=txt.match(/\{[\s\S]*\}/);if(!jm)throw new Error('Bad response format');
-      const j=JSON.parse(jm[0]);
-      const cards=[];
-      for(const rec of(j.items||[]).slice(0,8)){try{const sr=await fetch2(`${BASE}/search/${rec.type==='tv'?'tv':'movie'}?api_key=${apiKey}&query=${encodeURIComponent(rec.search_query)}`);const m=sr.results?.find(x=>x.poster_path);if(m)cards.push({...rec,media:m});}catch{}}
-      setAiRes({text:(j.text_response||'').replace(/\*/g,''),cards});setAiLoad(false);return;
-    }catch(e){const msg=e.message||'';setAiErr(`Could not fetch recommendations. ${msg}`);setAiLoad(false);}
-  };
+  const lastRef=useCallback(n=>{if(loading)return;if(obs.current)obs.current.disconnect();obs.current=new IntersectionObserver(([e])=>{if(e.isIntersecting&&more)setPg(p=>p+(dq?3:2));},{rootMargin:'600px'});if(n)obs.current.observe(n);},[loading,more,dq]);
 
   return(
     <div className="pt-24 md:pt-32 px-5 md:px-12 lg:px-16 min-h-screen bg-[#050505] max-w-[1800px] mx-auto pb-28 au">
-      <div className="flex justify-center mb-10">
-        <div className="bg-[#18181b] border border-white/10 p-1.5 rounded-full flex gap-1 shadow-lg">
-          {[['standard','Search',Search],['ai','Ask AI',Sparkles]].map(([id,lbl,Icon])=>(
-            <button key={id} onClick={()=>setMode(id)} className={cn('flex items-center gap-2 px-6 py-3 rounded-full text-[15px] font-bold transition-all outline-none',mode===id?'bg-white text-black shadow-lg':'text-white/50 hover:text-white')}>
-              <Icon className="w-5 h-5"/>{lbl}
-            </button>
-          ))}
+      <div className="sticky top-[80px] bg-[#050505]/95 backdrop-blur-md pt-2 pb-6 z-40 w-full mb-8">
+        <div className="relative mb-5">
+          <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 text-white/40"/>
+          <input type="text" placeholder="Movies, series, genres…" value={q} onChange={e=>setQ(e.target.value)} autoFocus
+            className="w-full bg-[#18181b] border border-white/10 text-white pl-16 pr-12 py-5 rounded-full outline-none placeholder:text-white/30 focus:bg-[#27272a] focus:border-white/20 text-[18px] font-medium transition-all shadow-inner"/>
+          {q&&<button onClick={()=>setQ('')} className="absolute right-6 top-1/2 -translate-y-1/2 text-white/40 hover:text-white outline-none"><X className="w-6 h-6"/></button>}
+        </div>
+        
+        <div className="flex items-center gap-4 overflow-x-auto pb-2 scrollbar-hide -mx-5 px-5 md:mx-0 md:px-0 mask-edges">
+          <div className="flex bg-[#18181b] border border-white/10 rounded-full p-1.5 shrink-0">
+            {[['all','All'],['movie','Movies'],['tv','Series']].map(([v,l])=>(
+              <button key={v} onClick={()=>setFType(v)} className={cn('px-5 py-2 rounded-full text-[14px] font-bold transition-all outline-none',fType===v?'bg-[#27272a] text-white shadow-md':'text-white/40 hover:text-white')}>{l}</button>
+            ))}
+          </div>
+          
+          <select value={fSort} onChange={e=>setFSort(e.target.value)} className="cs bg-[#18181b] border border-white/10 text-white/80 rounded-full px-5 py-3 outline-none text-[14px] font-bold pr-10 shrink-0 cursor-pointer transition-all hover:bg-[#27272a]">
+            <option value="popularity.desc" className="bg-[#1C1C1E]">Popular</option>
+            <option value="vote_average.desc" className="bg-[#1C1C1E]">Top Rated</option>
+            <option value="primary_release_date.desc" className="bg-[#1C1C1E]">Newest</option>
+            <option value="revenue.desc" className="bg-[#1C1C1E]">Box Office</option>
+          </select>
+          
+          <select value={fGenre} onChange={e=>setFGenre(e.target.value)} className="cs bg-[#18181b] border border-white/10 text-white/80 rounded-full px-5 py-3 outline-none text-[14px] font-bold pr-10 shrink-0 cursor-pointer transition-all hover:bg-[#27272a]">
+            <option value="" className="bg-[#1C1C1E]">Any Genre</option>
+            {ALL_GENRES.map(g=><option key={g.id} value={g.id} className="bg-[#1C1C1E]">{g.name}</option>)}
+          </select>
+          
+          <select value={fYear} onChange={e=>setFYear(e.target.value)} className="cs bg-[#18181b] border border-white/10 text-white/80 rounded-full px-5 py-3 outline-none text-[14px] font-bold pr-10 shrink-0 cursor-pointer transition-all hover:bg-[#27272a]">
+            <option value="" className="bg-[#1C1C1E]">Any Year</option>
+            {yrs.map(y=><option key={y} value={y} className="bg-[#1C1C1E]">{y}</option>)}
+          </select>
+          
+          <select value={fRating} onChange={e=>setFRating(e.target.value)} className="cs bg-[#18181b] border border-white/10 text-white/80 rounded-full px-5 py-3 outline-none text-[14px] font-bold pr-10 shrink-0 cursor-pointer transition-all hover:bg-[#27272a]">
+            <option value="" className="bg-[#1C1C1E]">Any Rating</option>
+            <option value="9" className="bg-[#1C1C1E]">9+ ★ Masterpiece</option>
+            <option value="8" className="bg-[#1C1C1E]">8+ ★ Excellent</option>
+            <option value="7" className="bg-[#1C1C1E]">7+ ★ Great</option>
+            <option value="6" className="bg-[#1C1C1E]">6+ ★ Good</option>
+          </select>
         </div>
       </div>
 
-      {mode==='standard'&&(<>
-        <div className="sticky top-[80px] bg-[#050505]/95 backdrop-blur-md pt-2 pb-6 z-40 w-full mb-8">
-          <div className="relative mb-5">
-            <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 text-white/40"/>
-            <input type="text" placeholder="Movies, series, genres…" value={q} onChange={e=>setQ(e.target.value)} autoFocus
-              className="w-full bg-[#18181b] border border-white/10 text-white pl-16 pr-12 py-5 rounded-full outline-none placeholder:text-white/30 focus:bg-[#27272a] focus:border-white/20 text-[18px] font-medium transition-all shadow-inner"/>
-            {q&&<button onClick={()=>setQ('')} className="absolute right-6 top-1/2 -translate-y-1/2 text-white/40 hover:text-white outline-none"><X className="w-6 h-6"/></button>}
-          </div>
-          
-          <div className="flex items-center gap-4 overflow-x-auto pb-2 scrollbar-hide -mx-5 px-5 md:mx-0 md:px-0 mask-edges">
-            <div className="flex bg-[#18181b] border border-white/10 rounded-full p-1.5 shrink-0">
-              {[['all','All'],['movie','Movies'],['tv','Series']].map(([v,l])=>(
-                <button key={v} onClick={()=>setFType(v)} className={cn('px-5 py-2 rounded-full text-[14px] font-bold transition-all outline-none',fType===v?'bg-[#27272a] text-white shadow-md':'text-white/40 hover:text-white')}>{l}</button>
-              ))}
-            </div>
-            
-            <select value={fSort} onChange={e=>setFSort(e.target.value)} className="cs bg-[#18181b] border border-white/10 text-white/80 rounded-full px-5 py-3 outline-none text-[14px] font-bold pr-10 shrink-0 cursor-pointer transition-all hover:bg-[#27272a]">
-              <option value="popularity.desc" className="bg-[#1C1C1E]">Popular</option>
-              <option value="vote_average.desc" className="bg-[#1C1C1E]">Top Rated</option>
-              <option value="primary_release_date.desc" className="bg-[#1C1C1E]">Newest</option>
-              <option value="revenue.desc" className="bg-[#1C1C1E]">Box Office</option>
-            </select>
-            
-            <select value={fGenre} onChange={e=>setFGenre(e.target.value)} className="cs bg-[#18181b] border border-white/10 text-white/80 rounded-full px-5 py-3 outline-none text-[14px] font-bold pr-10 shrink-0 cursor-pointer transition-all hover:bg-[#27272a]">
-              <option value="" className="bg-[#1C1C1E]">Any Genre</option>
-              {ALL_GENRES.map(g=><option key={g.id} value={g.id} className="bg-[#1C1C1E]">{g.name}</option>)}
-            </select>
-            
-            <select value={fYear} onChange={e=>setFYear(e.target.value)} className="cs bg-[#18181b] border border-white/10 text-white/80 rounded-full px-5 py-3 outline-none text-[14px] font-bold pr-10 shrink-0 cursor-pointer transition-all hover:bg-[#27272a]">
-              <option value="" className="bg-[#1C1C1E]">Any Year</option>
-              {yrs.map(y=><option key={y} value={y} className="bg-[#1C1C1E]">{y}</option>)}
-            </select>
-            
-            <select value={fRating} onChange={e=>setFRating(e.target.value)} className="cs bg-[#18181b] border border-white/10 text-white/80 rounded-full px-5 py-3 outline-none text-[14px] font-bold pr-10 shrink-0 cursor-pointer transition-all hover:bg-[#27272a]">
-              <option value="" className="bg-[#1C1C1E]">Any Rating</option>
-              <option value="9" className="bg-[#1C1C1E]">9+ ★ Masterpiece</option>
-              <option value="8" className="bg-[#1C1C1E]">8+ ★ Excellent</option>
-              <option value="7" className="bg-[#1C1C1E]">7+ ★ Great</option>
-              <option value="6" className="bg-[#1C1C1E]">6+ ★ Good</option>
-            </select>
-          </div>
+      {res.length>0?(<>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-x-5 gap-y-10 pb-10">
+          {res.map(i=><PosterCard key={i.id} media={i} onClick={onCard}/>)}
         </div>
-
-        {res.length>0?(<>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-x-5 gap-y-10 pb-10">
-            {res.map(i=><PosterCard key={i.id} media={i} onClick={onCard}/>)}
-          </div>
-          {more&&<div ref={lastRef} className="py-10 flex justify-center"><Spin/></div>}
-        </>):loading?(<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">{[...Array(10)].map((_,i)=><div key={i} className="aspect-[2/3] sk rounded-2xl"/>)}</div>):(
-          <div className="py-32 text-center text-white/30"><Search className="w-20 h-20 mx-auto mb-6 opacity-20"/><p className="text-xl font-medium">Find your next favorite</p></div>
-        )}
-      </>)}
-
-      {mode==='ai'&&(
-        <div className="max-w-4xl mx-auto">
-          {!geminiKey&&<div className="mb-8 p-6 rounded-3xl bg-[#18181b] border border-white/10 text-center"><Sparkles className="w-10 h-10 mx-auto mb-4 text-white/50"/><p className="text-white/80 text-[16px] font-bold">Add your Gemini API key in Settings → API Keys</p></div>}
-          <form onSubmit={handleAi} className="relative mb-10 shadow-2xl">
-            <input type="text" placeholder="e.g. A gripping sci-fi thriller about space exploration..." value={aiQ} onChange={e=>setAiQ(e.target.value)} disabled={aiLoad} autoFocus
-              className="w-full bg-[#18181b] border border-white/10 text-white py-6 pl-8 pr-20 rounded-full outline-none placeholder:text-white/30 focus:bg-[#27272a] focus:border-white/20 text-[18px] font-medium transition-all"/>
-            <button type="submit" disabled={aiLoad||!aiQ.trim()||!geminiKey} className="absolute right-4 top-1/2 -translate-y-1/2 p-4 rounded-full bg-white text-black disabled:opacity-50 outline-none transition-transform hover:scale-105">
-              {aiLoad?<Spin sz={6} c="#000"/>:<Send className="w-6 h-6"/>}
-            </button>
-          </form>
-          {aiErr&&<div className="text-red-400 text-[15px] mb-8 p-5 rounded-2xl bg-red-500/10 border border-red-500/20 text-center font-bold">{aiErr}</div>}
-          {aiRes&&(
-            <div className="bg-[#18181b] border border-white/10 rounded-[2rem] p-8 md:p-12 shadow-2xl as">
-              <p className="text-white/90 text-[18px] md:text-[22px] leading-relaxed mb-10 font-bold tracking-tight">{aiRes.text}</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-5 gap-y-8">
-                {aiRes.cards.map((c,i)=>(
-                  <div key={i} onClick={()=>onCard(c.media)} className="cursor-pointer group flex flex-col gap-3">
-                    <PosterCard media={c.media} onClick={()=>onCard(c.media)}/>
-                    <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
-                       <p className="text-white/60 text-[13px] leading-snug line-clamp-3 font-medium">{c.reason}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        {more&&<div ref={lastRef} className="py-10 flex justify-center"><Spin/></div>}
+      </>):loading?(<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">{[...Array(10)].map((_,i)=><div key={i} className="aspect-[2/3] sk rounded-2xl"/>)}</div>):(
+        <div className="py-32 text-center text-white/30"><Search className="w-20 h-20 mx-auto mb-6 opacity-20"/><p className="text-xl font-medium">Find your next favorite</p></div>
       )}
     </div>
   );
@@ -1024,7 +950,6 @@ const LiveTvView=React.memo(({focus,setFocus})=>{
 
 // ─── SPORTS ──────────────────────────────────────────────────────────────────
 const fmtSport=n=>{if(!n)return'';const m={'football':'Soccer','american-football':'NFL','basketball':'NBA','baseball':'MLB','hockey':'NHL','tennis':'Tennis','mma':'MMA','boxing':'Boxing','cricket':'Cricket','rugby':'Rugby','motor-sports':'Motorsport','wrestling':'Wrestling'};return m[n.toLowerCase()]||n.split('-').map(w=>w[0].toUpperCase()+w.slice(1)).join(' ');};
-const rSc=s=>{if(s==null)return'—';if(typeof s==='object')return String(s.current||s.display||s.total||'—');return String(s);};
 
 const fetchTeamLogo = async (teamName) => {
   if (!teamName) return null;
@@ -1035,59 +960,10 @@ const fetchTeamLogo = async (teamName) => {
   } catch { return null; }
 };
 
-const getRecentWrestling = () => {
-  const shows = [
-    { name: 'WWE Raw', tag: 'wareww' },
-    { name: 'WWE SmackDown', tag: 'nwodkcamseww' },
-    { name: 'AEW Dynamite', tag: 'etimanydwea' }
-  ];
-  const items = [];
-  for(let i=0; i<7; i++) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const m = d.getMonth() + 1;
-    const day = d.getDate();
-    const y = d.getFullYear().toString().slice(-2);
-    const dateStr = `${m}-${day}-${y}`; 
-    shows.forEach(s => {
-      items.push({
-        id: `wres_${s.tag}_${i}`,
-        title: `${s.name}`,
-        date: d.toISOString(),
-        category: 'wrestling',
-        isLive: false,
-        isReplay: true,
-        teams: null,
-        sources: [],
-        url: `https://dailywrestling.cc/embed/${s.tag}/${dateStr}/select-post-1/1/1`
-      });
-    });
-  }
-  return items;
-};
-
-const SportCard=({match,live,fmtT,onPlay,loading})=>{
-  const[scores,setScores]=useState(null);
+const SportCard=({match,live,fmtT,onPlay})=>{
   const[homeLogo,setHomeLogo]=useState(null);
   const[awayLogo,setAwayLogo]=useState(null);
 
-  useEffect(()=>{
-    if(!live||!match.id||match.category==='wrestling') return;
-    let ok=true;
-    const fetchScore = async () => {
-      try {
-        const r = await fetch(`https://streamed.pk/api/matches/${match.id}?t=${Date.now()}`);
-        if (r.ok && ok) {
-          const d = await r.json();
-          if (d?.score) setScores(d.score);
-        }
-      } catch {}
-    };
-    fetchScore();
-    const t = setInterval(fetchScore, 30000);
-    return () => { ok=false; clearInterval(t); };
-  },[live,match.id,match.category]);
-  
   useEffect(() => {
     if (match.teams?.home && !match.teams.home.badge) {
        fetchTeamLogo(match.teams.home.name).then(logo => { if(logo) setHomeLogo(logo); });
@@ -1097,64 +973,84 @@ const SportCard=({match,live,fmtT,onPlay,loading})=>{
     }
   }, [match]);
 
-  const sc=scores||match.score;
   const isGeneric = !match.teams?.home || !match.teams?.away;
   const hBadge = match.teams?.home?.badge ? `https://streamed.pk/api/images/badge/${match.teams.home.badge}.webp` : homeLogo;
   const aBadge = match.teams?.away?.badge ? `https://streamed.pk/api/images/badge/${match.teams.away.badge}.webp` : awayLogo;
   
   return(
     <div onClick={()=>onPlay(match)} className="flex flex-col gap-3 group cursor-pointer outline-none w-full relative" tabIndex={0} onKeyDown={e=>{if(e.key==='Enter')onPlay(match);}}>
-      <div className="relative rounded-3xl overflow-hidden aspect-video bg-[#18181b] border border-white/5 transition-all duration-400 shadow-md group-hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] group-hover:-translate-y-1.5 flex flex-col items-center justify-center p-5">
-         <div className="absolute inset-0 bg-gradient-to-br from-black/80 to-transparent opacity-60 pointer-events-none"/>
-         
-         <div className="absolute top-4 left-4 z-10 flex items-center gap-2.5">
-           <span className="text-[11px] font-black uppercase tracking-widest text-white/80 bg-black/40 px-3 py-1.5 rounded-full">{fmtSport(match.category)}</span>
-           {live&&<div className="flex items-center gap-2 text-[11px] font-bold text-white bg-red-600 px-3 py-1.5 rounded-full shadow-lg"><div className="w-2 h-2 rounded-full bg-white lp"/>LIVE</div>}
-           {match.isReplay&&<div className="flex items-center gap-2 text-[11px] font-bold text-white bg-blue-600 px-3 py-1.5 rounded-full shadow-lg"><History className="w-3 h-3"/>REPLAY</div>}
+      <div className="relative rounded-3xl overflow-hidden aspect-[16/9] bg-[#121212] border border-white/5 hover:border-white/20 transition-all duration-300 flex flex-col items-center justify-center p-4 sm:p-5 shadow-md hover:shadow-xl hover:-translate-y-1">
+         <div className="absolute inset-0 bg-gradient-to-br from-[#1a1a1c] to-[#0a0a0c] opacity-80 pointer-events-none"/>
+
+         <div className="absolute top-4 left-4 sm:left-5 z-10 flex items-center gap-2.5">
+           <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-white/50">{fmtSport(match.category)}</span>
          </div>
 
-         {!live && <div className="absolute top-4 right-4 text-[12px] font-bold text-white/90 bg-black/40 px-3 py-1.5 rounded-full">{fmtT(match.date)}</div>}
+         <div className="absolute top-4 right-4 sm:right-5 z-10">
+            {live ? (
+               <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold text-red-500 uppercase tracking-widest bg-red-500/10 px-2.5 py-1 rounded-md border border-red-500/20 animate-pulse">
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-500"/>LIVE
+               </div>
+            ) : (
+               <span className="text-[11px] sm:text-[12px] font-bold text-white/50">{fmtT(match.date)}</span>
+            )}
+         </div>
 
          {!isGeneric ? (
-            <div className="flex items-center justify-center gap-8 w-full mt-6 relative z-10">
-               <div className="flex flex-col items-center gap-3 w-1/3">
-                 <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white/10 flex items-center justify-center overflow-hidden border border-white/10 p-3 shadow-lg">
-                    {hBadge?<img src={hBadge} className="w-full h-full object-contain" alt="" onError={e=>{e.target.style.display='none';}}/>:<span className="text-2xl font-black text-white/40">{match.teams.home.name?.[0]||'?'}</span>}
+            <div className="flex items-center justify-between w-full mt-4 sm:mt-2 relative z-10 px-1 sm:px-2">
+               <div className="flex flex-col items-center gap-2 sm:gap-3 w-[42%] relative">
+                 <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#18181b] flex items-center justify-center overflow-hidden p-2 sm:p-2.5 border border-white/10 shadow-sm shrink-0 relative">
+                    <div className="absolute inset-0 rounded-full bg-white/5 pointer-events-none"/>
+                    {hBadge?<img src={hBadge} className="max-w-full max-h-full object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.85)] relative z-10" alt="" onError={e=>{e.target.style.display='none';}}/>:<span className="text-xl font-black text-white/30 relative z-10">{match.teams.home.name?.[0]||'?'}</span>}
                  </div>
-                 <span className="text-white/95 font-bold text-[14px] md:text-[16px] text-center truncate w-full">{match.teams.home.name}</span>
+                 <span className="text-white/90 font-bold text-[12px] sm:text-[14px] text-center line-clamp-2 leading-tight px-1">{match.teams.home.name}</span>
                </div>
                
-               <div className="flex flex-col items-center justify-center w-1/4">
-                 <div className="text-3xl md:text-4xl font-black tabular-nums tracking-tighter">
-                    {sc?<span className="text-white drop-shadow-lg">{rSc(sc.home)} <span className="text-white/20 mx-1">-</span> {rSc(sc.away)}</span>:live?<span className="text-white drop-shadow-lg">0 <span className="text-white/20 mx-1">-</span> 0</span>:<span className="text-white/30 text-xl font-bold">VS</span>}
-                 </div>
-                 {(sc?.time || sc?.status) && (
-                    <div className="text-red-500 font-bold text-[12px] md:text-[14px] mt-2 drop-shadow-md tracking-widest uppercase">{sc.time || sc.status}</div>
-                 )}
-               </div>
+               <div className="text-white/20 font-black text-sm sm:text-base italic w-[16%] text-center select-none">VS</div>
 
-               <div className="flex flex-col items-center gap-3 w-1/3">
-                 <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white/10 flex items-center justify-center overflow-hidden border border-white/10 p-3 shadow-lg">
-                    {aBadge?<img src={aBadge} className="w-full h-full object-contain" alt="" onError={e=>{e.target.style.display='none';}}/>:<span className="text-2xl font-black text-white/40">{match.teams.away.name?.[0]||'?'}</span>}
+               <div className="flex flex-col items-center gap-2 sm:gap-3 w-[42%] relative">
+                 <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#18181b] flex items-center justify-center overflow-hidden p-2 sm:p-2.5 border border-white/10 shadow-sm shrink-0 relative">
+                    <div className="absolute inset-0 rounded-full bg-white/5 pointer-events-none"/>
+                    {aBadge?<img src={aBadge} className="max-w-full max-h-full object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.85)] relative z-10" alt="" onError={e=>{e.target.style.display='none';}}/>:<span className="text-xl font-black text-white/30 relative z-10">{match.teams.away.name?.[0]||'?'}</span>}
                  </div>
-                 <span className="text-white/95 font-bold text-[14px] md:text-[16px] text-center truncate w-full">{match.teams.away.name}</span>
+                 <span className="text-white/90 font-bold text-[12px] sm:text-[14px] text-center line-clamp-2 leading-tight px-1">{match.teams.away.name}</span>
                </div>
             </div>
          ) : (
-            <h3 className="text-white/95 font-bold text-xl md:text-2xl text-center px-6 relative z-10 drop-shadow-md">{String(match.title||match.name)}</h3>
+            <div className="flex flex-col items-center justify-center h-full relative z-10 w-full px-4">
+              <h3 className="text-white/90 font-bold text-[15px] sm:text-[18px] text-center leading-snug">{String(match.title||match.name)}</h3>
+            </div>
          )}
 
-         <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-all duration-300"/>
+         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center z-20 backdrop-blur-[2px]">
+            <div className="w-14 h-14 rounded-full bg-white text-black flex items-center justify-center transform scale-75 group-hover:scale-100 transition-all duration-300 shadow-2xl">
+               <Play className="w-6 h-6 fill-current ml-1"/>
+            </div>
+         </div>
       </div>
-      {loading&&<div className="absolute inset-0 bg-[#18181b]/80 flex items-center justify-center rounded-3xl z-30"><Spin sz={10}/></div>}
     </div>
   );
 };
 
-const SportsView=React.memo(({onPlay})=>{
-  const[all,setAll]=useState([]),[load,setLoad]=useState(true),[cat,setCat]=useState('All'),[lId,setLId]=useState(null);
-  const isLive=useCallback(d=>{const n=Date.now(),m=new Date(d).getTime();return n>=m&&n<=m+10800000;},[]);
-  const fmtT=d=>{const dt=new Date(d),t=new Date(),tm=new Date();tm.setDate(tm.getDate()+1);const ts=dt.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});if(dt.toDateString()===t.toDateString())return`Today ${ts}`;if(dt.toDateString()===tm.toDateString())return`Tomorrow ${ts}`;return`${dt.toLocaleDateString([],{month:'short',day:'numeric'})} ${ts}`;};
+const REPLAY_SECTIONS = [
+  { title: 'UFC Pay-Per-Views', id: 'ufcPPV' },
+  { title: 'UFC Fight Nights', id: 'ufcFN' },
+  { title: 'WWE Premium Live Events', id: 'wwe' },
+  { title: 'Lucha Libre', id: 'lucha' }
+];
+
+const CANADIAN_SPORTS = ['NHL', 'NBA', 'Soccer', 'MLB', 'NFL'];
+const displaySport = (s) => ({'NHL':'Hockey', 'NBA':'Basketball', 'NFL':'Football', 'MLB':'Baseball', 'Soccer':'Soccer'})[s] || s;
+
+const SportsView=React.memo(({apiKey, onPlay, onCard})=>{
+  const[allLive,setAllLive]=useState([]);
+  const[loadLive,setLoadLive]=useState(true);
+  const[cat,setCat]=useState('All');
+  const[searchQuery,setSearchQuery]=useState('');
+
+  // Replay Data
+  const[replayData,setReplayData]=useState(null);
+  const[loadingReplays,setLoadingReplays]=useState(false);
   
   useEffect(()=>{
     let ok=true;
@@ -1165,70 +1061,219 @@ const SportsView=React.memo(({onPlay})=>{
         if(Array.isArray(d))md=d;
         else if(typeof d==='object')Object.values(d).forEach(v=>{if(Array.isArray(v))md.push(...v);});
         const um=new Map();
-        md.forEach(m=>{const k=m.teams?.home&&m.teams?.away?[m.teams.home.name,m.teams.away.name].sort().join('|'):(m.title||m.id||'').trim();if(!k)return;const ex=um.get(k);if(!ex||(m.teams?.home?.badge&&!ex.teams?.home?.badge))um.set(k,m);});
+        md.forEach(m=>{
+          const k=m.teams?.home&&m.teams?.away?[m.teams.home.name,m.teams.away.name].sort().join('|'):(m.title||m.id||'').trim();
+          if(!k)return;
+          const ex=um.get(k);
+          if(!ex||(m.teams?.home?.badge&&!ex.teams?.home?.badge))um.set(k,m);
+        });
         
-        const wres = getRecentWrestling();
-        if(ok)setAll([...Array.from(um.values()), ...wres]);
+        if(ok) setAllLive(Array.from(um.values()).filter(m => !m.isReplay && m.category !== 'wrestling'));
       }catch{}
-      if(ok)setLoad(false);
+      if(ok) setLoadLive(false);
     })();
     return()=>{ok=false;};
   },[]);
 
-  const sports=useMemo(()=>{
-    const s=new Set(all.filter(m=>!m.isReplay).map(m=>fmtSport(m.category)).filter(Boolean));
-    const p=['NBA','NFL','MLB','NHL','Soccer','Tennis','Wrestling'];
-    const sorted = Array.from(s).filter(c => c !== 'Cricket').sort((a,b)=>{const ia=p.indexOf(a),ib=p.indexOf(b);if(ia>-1&&ib>-1)return ia-ib;if(ia>-1)return-1;if(ib>-1)return 1;return a.localeCompare(b);});
-    if(all.some(m=>m.isReplay)) sorted.push('Replays');
-    return['All', ...sorted];
-  },[all]);
-  
-  const sortedMatches = useMemo(()=>{
-    if(cat === 'Replays') {
-        return all.filter(m => m.isReplay).sort((a,b)=>new Date(b.date)-new Date(a.date));
-    }
-    let f = all.filter(m => !m.isReplay);
-    if(cat!=='All') f = f.filter(m=>fmtSport(m.category)===cat);
-    return f.sort((a,b)=>{const al=isLive(a.date),bl=isLive(b.date);return al!==bl?al?-1:1:new Date(a.date)-new Date(b.date);});
-  },[all,cat,isLive]);
+  // Fetch TMDB Replays Logic
+  useEffect(()=>{
+    if(cat !== 'Replays' || replayData) return;
+    let ok=true;
+    setLoadingReplays(true);
 
-  const handlePlay=async m=>{
-    setLId(m.id);
-    if(m.isReplay || m.category === 'wrestling') {
-      await onPlay({ isLive: true, type: 'iframe', name: m.title, url: m.url });
-    } else {
-      await onPlay(m);
+    const isNonGame = (t) => {
+        if (!t) return true;
+        const lower = t.toLowerCase();
+        return lower.includes('countdown') || lower.includes('embedded') || lower.includes('weigh-in') || lower.includes('weigh in') || lower.includes('press conference') || lower.includes('documentary') || lower.includes('road to') || lower.includes('story of') || lower.includes('q&a');
+    };
+    const exGen = [99,18,35,16,80,27,878,10751,10749,14,10402,9648,10752,37];
+
+    (async()=>{
+        try {
+            // 1. Fetch UFC via Dana White (TMDB Person ID: 108222)
+            let ufcPPV = [], ufcFN = [];
+            try {
+                const ufcRes = await fetch2(`${BASE}/person/108222/combined_credits?api_key=${apiKey}`);
+                if (ufcRes && ok) {
+                    const combined = [...(ufcRes.cast || []), ...(ufcRes.crew || [])];
+                    const uniqueUfc = new Map();
+                    combined.forEach(m => {
+                        if (m.poster_path && !uniqueUfc.has(m.id)) uniqueUfc.set(m.id, m);
+                    });
+                    
+                    const cleanUfc = Array.from(uniqueUfc.values()).filter(m => {
+                        if (m.genre_ids?.some(g => exGen.includes(g))) return false;
+                        return !isNonGame(m.title || m.name);
+                    });
+                    
+                    cleanUfc.sort((a,b) => new Date(b.release_date||b.first_air_date||0) - new Date(a.release_date||a.first_air_date||0));
+                    
+                    ufcPPV = cleanUfc.filter(m => /^UFC\s\d+(?::|$)/i.test(m.title || m.name)).slice(0, 20);
+                    ufcFN  = cleanUfc.filter(m => /^UFC Fight Night/i.test(m.title || m.name)).slice(0, 20);
+                }
+            } catch(e) {}
+
+            // 2. Fetch WWE & Lucha using actor validation
+            const fetchWithActors = async (queries, pages = 1, titleRegex = null) => {
+                let results = [];
+                for (const q of queries) {
+                    for(let p=1; p<=pages; p++) {
+                        try {
+                            const res = await fetch2(`${BASE}/search/multi?api_key=${apiKey}&query=${encodeURIComponent(q)}&page=${p}`);
+                            if (res.results) results.push(...res.results);
+                        } catch(e){}
+                    }
+                }
+                const unique = new Map();
+                results.forEach(m => {
+                    if (m.poster_path && (m.media_type==='movie'||m.media_type==='tv')) {
+                        const t = m.title || m.name;
+                        if (!unique.has(m.id) && !m.genre_ids?.some(g=>exGen.includes(g)) && !isNonGame(t)) {
+                            if(!titleRegex || titleRegex.test(t)) {
+                                unique.set(m.id, m);
+                            }
+                        }
+                    }
+                });
+                
+                const candidates = Array.from(unique.values()).sort((a,b) => new Date(b.release_date||b.first_air_date||0) - new Date(a.release_date||a.first_air_date||0)).slice(0, 40);
+                const validated = [];
+                
+                for (const m of candidates) {
+                    try {
+                        const det = await fetch2(`${BASE}/${m.media_type}/${m.id}?api_key=${apiKey}&append_to_response=credits`);
+                        if (det.credits?.cast?.length > 0) validated.push(m);
+                    } catch(e) {}
+                }
+                return validated.sort((a,b) => new Date(b.release_date||b.first_air_date||0) - new Date(a.release_date||a.first_air_date||0));
+            };
+
+            const wweQueries = ['WrestleMania', 'Royal Rumble', 'SummerSlam', 'Survivor Series', 'Money in the Bank', 'WWE Raw', 'WWE SmackDown', 'WWE Clash', 'WWE Backlash'];
+            const luchaQueries = ['CMLL'];
+
+            const [wweValid, luchaValid] = await Promise.all([
+                fetchWithActors(wweQueries, 2),
+                fetchWithActors(luchaQueries, 1, /CMLL/i)
+            ]);
+
+            if (ok) {
+                setReplayData({ ufcPPV, ufcFN, wwe: wweValid, lucha: luchaValid });
+            }
+        } catch(e) {}
+        if (ok) setLoadingReplays(false);
+    })();
+    return () => { ok = false; };
+  }, [cat, apiKey, replayData]);
+
+  const isLive=useCallback(d=>{const n=Date.now(),m=new Date(d).getTime();return n>=m&&n<=m+10800000;},[]);
+  const fmtT=d=>{const dt=new Date(d),t=new Date(),tm=new Date();tm.setDate(tm.getDate()+1);const ts=dt.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});if(dt.toDateString()===t.toDateString())return`Today ${ts}`;if(dt.toDateString()===tm.toDateString())return`Tomorrow ${ts}`;return`${dt.toLocaleDateString([],{month:'short',day:'numeric'})} ${ts}`;};
+
+  const liveSportsCount = useMemo(() => {
+     const counts = {};
+     allLive.forEach(m => {
+        const s = fmtSport(m.category);
+        counts[s] = (counts[s] || 0) + 1;
+     });
+     return counts;
+  }, [allLive]);
+
+  const tabs = useMemo(() => {
+     const activeSports = CANADIAN_SPORTS.filter(s => liveSportsCount[s] >= 5);
+     return ['All', ...activeSports.slice(0, 5), 'Replays'];
+  }, [liveSportsCount]);
+
+  const sortedLive = useMemo(()=>{
+    let filtered = allLive;
+    if (cat !== 'All' && cat !== 'Replays') {
+       filtered = allLive.filter(m => fmtSport(m.category) === cat);
     }
-    setLId(null);
-  };
-  
+    if (searchQuery.trim()) {
+       const q = searchQuery.toLowerCase();
+       filtered = filtered.filter(m => 
+          (m.teams?.home?.name || '').toLowerCase().includes(q) ||
+          (m.teams?.away?.name || '').toLowerCase().includes(q) ||
+          (m.title || m.name || '').toLowerCase().includes(q) ||
+          fmtSport(m.category).toLowerCase().includes(q)
+       );
+    }
+    return filtered.sort((a,b)=>{
+       const aLive = isLive(a.date);
+       const bLive = isLive(b.date);
+       if (aLive !== bLive) return aLive ? -1 : 1;
+       
+       if (cat === 'All') {
+          const getPri = (m) => {
+             const idx = CANADIAN_SPORTS.indexOf(fmtSport(m.category));
+             return idx !== -1 ? idx : 999;
+          };
+          const pA = getPri(a);
+          const pB = getPri(b);
+          if (pA !== pB) return pA - pB;
+       }
+       return new Date(a.date) - new Date(b.date);
+    });
+  },[allLive,isLive,cat,searchQuery]);
+
+  const filteredReplays = useCallback((data) => {
+     if (!searchQuery.trim()) return data;
+     const q = searchQuery.toLowerCase();
+     return data.filter(m => (m.title||m.name||'').toLowerCase().includes(q));
+  }, [searchQuery]);
+
   return(
-    <div className="pt-24 md:pt-32 px-5 md:px-12 lg:px-16 min-h-screen bg-[#050505] max-w-[1800px] mx-auto pb-28 au">
-      <div className="flex gap-2.5 overflow-x-auto pb-4 mb-8 mask-edges -mx-5 px-5 md:mx-0 md:px-0">
-        {sports.map(s=><button key={s} onClick={()=>setCat(s)} className={cn('px-6 py-3 rounded-full text-[15px] font-bold whitespace-nowrap transition-all outline-none border border-white/10 shadow-sm',cat===s?'bg-white text-black':'bg-[#18181b] text-white/60 hover:text-white hover:bg-[#27272a]')}>{s}</button>)}
+    <div className="pt-24 md:pt-32 min-h-screen bg-[#050505] pb-28 au">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-5 md:px-12 lg:px-16 max-w-[1800px] mx-auto mb-10 pt-4 border-b border-white/10">
+        <div className="flex gap-6 overflow-x-auto mask-edges-right pr-4 scrollbar-hide pt-2 w-full md:w-auto">
+          {tabs.map(s=>(
+            <button key={s} onClick={()=>setCat(s)} className={cn('text-[15px] sm:text-[16px] font-bold tracking-wide whitespace-nowrap outline-none transition-all relative pb-4', cat===s?'text-white':'text-white/40 hover:text-white/80')}>
+              {displaySport(s)}
+              {cat===s && <div className="absolute bottom-0 left-0 w-full h-[3px] rounded-t-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]"/>}
+            </button>
+          ))}
+        </div>
+        <div className="relative shrink-0 w-full md:w-64 mb-4 md:mb-2">
+          <Search className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40"/>
+          <input type="text" placeholder="Search events..." value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} className="w-full bg-transparent border border-transparent border-b-white/20 text-white pl-7 pr-7 py-2 rounded-none outline-none placeholder:text-white/30 focus:border-b-white/70 text-[14px] font-medium transition-all"/>
+          {searchQuery&&<button onClick={()=>setSearchQuery('')} className="absolute right-0 top-1/2 -translate-y-1/2 text-white/40 hover:text-white outline-none"><X className="w-4 h-4"/></button>}
+        </div>
       </div>
       
-      {load?(
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">{[...Array(8)].map((_,i)=><div key={i} className="aspect-video sk rounded-3xl"/>)}</div>
-      ):(
-        <>
-          {sortedMatches.length > 0 && (
-            <div className="mb-12">
-              <h2 className="text-xl md:text-2xl font-bold tracking-tight text-white mb-6 flex items-center gap-3">
-                {cat === 'Replays' ? 'Past Replays' : 'Live & Upcoming Events'}
-                {cat !== 'Replays' && sortedMatches.some(m=>isLive(m.date)) && <span className="text-[12px] text-red-500 bg-red-500/10 px-3 py-1.5 rounded-full font-bold"><div className="w-1.5 h-1.5 rounded-full bg-red-500 lp inline-block mr-1.5"/>{sortedMatches.filter(m=>isLive(m.date)).length} Live</span>}
-                {cat === 'Replays' && <span className="text-[12px] text-blue-400 bg-blue-500/10 px-3 py-1.5 rounded-full font-bold"><History className="w-3 h-3 inline-block mr-1.5 -mt-0.5"/>On Demand</span>}
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                {sortedMatches.map(m=><SportCard key={m.id} match={m} live={isLive(m.date)} fmtT={fmtT} onPlay={handlePlay} loading={lId===m.id}/>)}
-              </div>
-            </div>
-          )}
-
-          {sortedMatches.length === 0 && (
-            <div className="py-32 flex flex-col items-center text-white/30"><Dribbble className="w-16 h-16 mb-4 opacity-20"/><p className="text-[15px] font-bold">No events scheduled</p></div>
-          )}
-        </>
+      {cat === 'Replays' ? (
+         <div className="w-full">
+            {loadingReplays ? (
+               <div className="py-32 flex justify-center"><Spin sz={8} /></div>
+            ) : replayData ? (
+               <>
+                 {replayData.ufcPPV?.length > 0 && filteredReplays(replayData.ufcPPV).length > 0 && <Row title="UFC Pay-Per-Views" data={filteredReplays(replayData.ufcPPV)} onCard={onCard} apiKey={apiKey} isReplay={true}/>}
+                 {replayData.ufcFN?.length > 0 && filteredReplays(replayData.ufcFN).length > 0 && <Row title="UFC Fight Nights" data={filteredReplays(replayData.ufcFN)} onCard={onCard} apiKey={apiKey} isReplay={true}/>}
+                 {replayData.wwe?.length > 0 && filteredReplays(replayData.wwe).length > 0 && <Row title="WWE Premium Live Events" data={filteredReplays(replayData.wwe)} onCard={onCard} apiKey={apiKey} isReplay={true}/>}
+                 {replayData.lucha?.length > 0 && filteredReplays(replayData.lucha).length > 0 && <Row title="Lucha Libre" data={filteredReplays(replayData.lucha)} onCard={onCard} apiKey={apiKey} isReplay={true}/>}
+               </>
+            ) : null}
+         </div>
+      ) : (
+         <div className="px-5 md:px-12 lg:px-16 max-w-[1800px] mx-auto">
+           {loadLive ? (
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">{[...Array(8)].map((_,i)=><div key={i} className="aspect-[16/9] sk rounded-[2rem]"/>)}</div>
+           ) : (
+             <>
+               {sortedLive.length > 0 && (
+                 <div className="mb-12">
+                   <h2 className="text-xl md:text-2xl font-bold tracking-tight text-white mb-6 flex items-center gap-3">
+                     {cat === 'All' ? 'Live & Upcoming Events' : `${displaySport(cat)} Events`}
+                     {sortedLive.some(m=>isLive(m.date)) && <span className="text-[12px] text-red-500 bg-red-500/10 px-3 py-1.5 rounded-md font-bold border border-red-500/20"><div className="w-1.5 h-1.5 rounded-full bg-red-500 lp inline-block mr-1.5"/>{sortedLive.filter(m=>isLive(m.date)).length} Live</span>}
+                   </h2>
+                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                     {sortedLive.map(m=><SportCard key={m.id} match={m} live={isLive(m.date)} fmtT={fmtT} onPlay={onPlay}/>)}
+                   </div>
+                 </div>
+               )}
+               {sortedLive.length === 0 && (
+                 <div className="py-32 flex flex-col items-center text-white/30"><Dribbble className="w-16 h-16 mb-4 opacity-20"/><p className="text-[15px] font-bold">No events currently scheduled</p></div>
+               )}
+             </>
+           )}
+         </div>
       )}
     </div>
   );
@@ -1308,6 +1353,17 @@ const Player=({media,config,onClose,sourceKey,vpSettings,skipSettings})=>{
           <Spin sz={12}/><p className="text-white/50 text-[16px] font-bold mt-6 tracking-wide uppercase">{SOURCES[srcKey]?.name||'Loading'}</p>
         </div>
       )}
+      
+      {/* Invisible overlay that reliably catches mouse movements over full-screen iframes to unhide the back button */}
+      {!showCtrl && (
+        <div 
+          className="absolute top-0 left-0 right-0 h-32 z-40" 
+          onMouseEnter={mMove} 
+          onMouseMove={mMove}
+          onTouchStart={mMove}
+        />
+      )}
+
       <div className={cn('absolute top-0 left-0 right-0 z-30 flex items-center justify-between p-6 md:p-8 bg-gradient-to-b from-black/90 to-transparent transition-opacity duration-500',showCtrl?'opacity-100 pointer-events-auto':'opacity-0 pointer-events-none')}>
         <button onClick={onClose} className="flex items-center gap-3 bg-[#18181b] border border-white/10 text-white hover:bg-white hover:text-black px-6 py-3.5 rounded-full font-bold text-[15px] transition-all outline-none shadow-2xl hover:scale-105">
           <ArrowLeft className="w-5 h-5"/>Back
@@ -1706,7 +1762,7 @@ const SettingsView=({settings,save,user})=>{
 
           {sec==='api'&&(
             <div className="p-10 space-y-10">
-              {[{l:'TMDB API Key',s:'Required for metadata',k:'apiKey',ph:'Enter API key…',link:'https://www.themoviedb.org/settings/api'},{l:'OMDb API Key',s:'Enables IMDb ratings',k:'omdbKey',ph:'e.g. 93a6d7d6',link:'https://www.omdbapi.com/apikey.aspx'},{l:'Gemini API Key',s:'AI-powered search',k:'geminiKey',ph:'AIza…',link:'https://aistudio.google.com/app/apikey',pw:true}].map(({l,s,k,ph,link,pw})=>(
+              {[{l:'TMDB API Key',s:'Required for metadata',k:'apiKey',ph:'Enter API key…',link:'https://www.themoviedb.org/settings/api'},{l:'OMDb API Key',s:'Enables IMDb ratings',k:'omdbKey',ph:'e.g. 93a6d7d6',link:'https://www.omdbapi.com/apikey.aspx'}].map(({l,s,k,ph,link,pw})=>(
                 <div key={k}>
                   <div className="flex items-start justify-between mb-4">
                     <div><p className="text-white/95 font-bold text-[18px] tracking-tight">{l}</p><p className="text-white/60 text-[14px] mt-1 font-bold">{s} — <a href={link} target="_blank" rel="noreferrer" className="text-white/90 hover:text-white underline">Get key</a></p></div>
@@ -1817,7 +1873,7 @@ export default function App(){
       <main>
         {tab==='home'&&<HomeView apiKey={apiKey} history={history} watchlist={watchlist} algoPrefs={algoPrefs} onPlay={handlePlay} onInfo={setSelMedia} toggleWL={toggleWL}/>}
         {tab==='live'&&<LiveTvView focus={focus} setFocus={setFocus}/>}
-        {tab==='sports'&&<SportsView onPlay={handleSport}/>}
+        {tab==='sports'&&<SportsView onPlay={handleSport} apiKey={apiKey} onCard={setSelMedia}/>}
         {tab==='movies'&&(
           <div className="pb-28 bg-[#050505] min-h-screen">
             {genre==='All'?(<>
@@ -1846,7 +1902,7 @@ export default function App(){
             </>):<GridView apiKey={apiKey} type="tv" genreId={genre} onCard={setSelMedia}/>}
           </div>
         )}
-        {tab==='search'&&<SearchView apiKey={apiKey} geminiKey={settings.geminiKey} history={history} onCard={setSelMedia}/>}
+        {tab==='search'&&<SearchView apiKey={apiKey} history={history} onCard={setSelMedia}/>}
         {tab==='watchlist'&&(
           <div className="px-5 md:px-12 lg:px-16 min-h-screen bg-[#050505] max-w-[1800px] mx-auto pt-24 md:pt-36 au">
             <h2 className="text-4xl font-bold tracking-tight text-white mb-10">Library</h2>
