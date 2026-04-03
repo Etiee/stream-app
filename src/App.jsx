@@ -24,16 +24,6 @@ let fallbackAppId = 'default-app-id';
 try {
   if (typeof __firebase_config !== 'undefined') {
     firebaseConfig = JSON.parse(__firebase_config);
-  } else if (typeof import.meta !== 'undefined' && import.meta.env) {
-    firebaseConfig = {
-      apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-      authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-      projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-      storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-      messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-      appId: import.meta.env.VITE_FIREBASE_APP_ID,
-    };
-    fallbackAppId = import.meta.env.VITE_FIREBASE_APP_ID || 'default-app-id';
   }
 } catch (e) { console.warn('Could not load Firebase config'); }
 
@@ -43,12 +33,12 @@ const db = getFirestore(app);
 const appId = typeof __app_id !== 'undefined' ? __app_id : fallbackAppId;
 
 // ─── SYSTEM CONFIG ───────────────────────────────────────────────────────────
-const GUEST_ACCESS_CODE = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_GUEST_CODE ? import.meta.env.VITE_GUEST_CODE : 'Streamonator Password 60000';
+const GUEST_ACCESS_CODE = 'Streamonator Password 60000';
 const BASE      = 'https://api.themoviedb.org/3';
 const IMG       = 'https://image.tmdb.org/t/p/';
 const INTRODB   = 'https://api.theintrodb.org/v2';
-const DEFAULT_TMDB = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_TMDB_KEY ? import.meta.env.VITE_TMDB_KEY : '9517f4751d84886b184cb4a4849e9f91';
-const DEFAULT_OMDB = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_OMDB_KEY ? import.meta.env.VITE_OMDB_KEY : '93a6d7d6';
+const DEFAULT_TMDB = '9517f4751d84886b184cb4a4849e9f91';
+const DEFAULT_OMDB = '93a6d7d6';
 const DEFAULT_CC = { size:'1.1rem', bg:'rgba(0,0,0,0.82)', color:'#fff', font:'system-ui,sans-serif', edge:'dropshadow' };
 const DEFAULT_VP = { autoNext:true, episodeList:true };
 const DEFAULT_SK = { enabled:true, showIntro:true, showRecap:true, showCredits:true, showPreview:false, autoSkip:false, buttonDuration:7 };
