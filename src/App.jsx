@@ -36,7 +36,8 @@ const appId = typeof __app_id !== 'undefined' ? __app_id : fallbackAppId;
 const GUEST_ACCESS_CODE = 'Streamonator Password 60000';
 const BASE      = 'https://api.themoviedb.org/3';
 const IMG       = 'https://image.tmdb.org/t/p/';
-const INTRODB   = 'https://api.theintrodb.org/v2';
+const INTRODB_API_KEY = 'theintrodb:user_3BrDtfviRub3XiFlxs4PgerPmBK:au5JiTbnXbWUEJDiFjLVhBk8ZSncX17_yfv1l-D1JQg';
+
 const DEFAULT_TMDB = '9517f4751d84886b184cb4a4849e9f91';
 const DEFAULT_OMDB = '93a6d7d6';
 const DEFAULT_CC = { size:'1.1rem', bg:'rgba(0,0,0,0.82)', color:'#fff', font:'system-ui,sans-serif', edge:'dropshadow' };
@@ -1227,16 +1228,20 @@ const SkipBtn = React.memo(({ mediaId, isTv, season, episode, elapsed, onSkip, s
       try {
         const urls = isTv
           ? [
-              `${INTRODB}/show/${mediaId}/season/${season}/episode/${episode}`,
-              `${INTRODB}/tv/${mediaId}/season/${season}/episode/${episode}` // Fallback path
+              `${INTRODB}/media/tv/${mediaId}/${season}/${episode}`
             ]
           : [
-              `${INTRODB}/movie/${mediaId}`
+              `${INTRODB}/media/movie/${mediaId}`
             ];
 
         let data = null;
         for (const url of urls) {
-          const r = await fetch(url, { signal: AbortSignal.timeout(5000) }).catch(() => null);
+          const r = await fetch(url, { 
+            headers: {
+              'Authorization': `Bearer ${INTRODB_API_KEY}`
+            },
+            signal: AbortSignal.timeout(5000) 
+          }).catch(() => null);
           if (r?.ok) {
             data = await r.json();
             break;
@@ -1261,8 +1266,8 @@ const SkipBtn = React.memo(({ mediaId, isTv, season, episode, elapsed, onSkip, s
               parsedSegments.push({
                 id: t.id || `${type}_${t.start}`,
                 type,
-                start: parseTime(t.start ?? t.startTime ?? t.start_time ?? 0),
-                end: parseTime(t.end ?? t.endTime ?? t.end_time ?? 0)
+                start: parseTime(t.start ?? t.startTime ?? t.startMs ?? t.start_ms ?? t.start_time ?? 0),
+                end: parseTime(t.end ?? t.endTime ?? t.endMs ?? t.end_ms ?? t.end_time ?? 0)
               });
             }
           });
@@ -1273,8 +1278,8 @@ const SkipBtn = React.memo(({ mediaId, isTv, season, episode, elapsed, onSkip, s
               parsedSegments.push({
                 id: k,
                 type: k.toLowerCase(),
-                start: parseTime(s.start_ms ? s.start_ms / 1000 : (s.start ?? s.startTime ?? 0)),
-                end: parseTime(s.end_ms ? s.end_ms / 1000 : (s.end ?? s.endTime ?? 0))
+                start: parseTime(s.startMs ? s.startMs / 1000 : (s.start_ms ? s.start_ms / 1000 : (s.start ?? s.startTime ?? 0))),
+                end: parseTime(s.endMs ? s.endMs / 1000 : (s.end_ms ? s.end_ms / 1000 : (s.end ?? s.endTime ?? 0)))
               });
             }
           });
@@ -1395,7 +1400,7 @@ const Player=({media,config,onClose,sourceKey,vpSettings,skipSettings})=>{
     elO.current=Date.now()-from*1000;
     elT.current=setInterval(()=>{
       if(m.current)setElapsed(Math.floor((Date.now()-elO.current)/1000));
-    },500);
+    },250);
   },[]);
   
   useEffect(()=>()=>{clearInterval(elT.current);clearTimeout(loadT.current);},[]);
