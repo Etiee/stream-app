@@ -4,7 +4,7 @@ import {
   Settings, Monitor, Film, ArrowLeft, Trash2, LayoutGrid, User, Dribbble,
   Server, Maximize, Minimize, VolumeX, Volume2, RefreshCw, Square, LogOut,
   Sidebar, AlertCircle, Eye, EyeOff, Mail, Lock, History, SkipForward, TrendingUp,
-  Timer, CalendarDays, SortAsc, Filter, PictureInPicture, Subtitles
+  Timer, CalendarDays, PictureInPicture
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import {
@@ -69,21 +69,21 @@ const SOURCES = {
 
 // ─── LIVE TV CHANNELS ────────────────────────────────────────────────────────
 const LIVE_CH = [
-  { id:'l_cnn',    name:'CNN',           cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/b/b1/CNN.svg',                                                                                                                     url:'https://turnerlive.warnermediacdn.com/hls/live/586495/cnngo/cnn_slate/VIDEO_0_3564000.m3u8' },
-  { id:'l_cbs',    name:'CBS News',      cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/2/2e/CBS_News_2020_%28Stacked_II%29.svg',                                                                                          url:'https://cbsn-us.cbsnstream.cbsnews.com/out/v1/55a8648e8f134e82a470f83d562deeca/master.m3u8' },
-  { id:'l_fox',    name:'Fox News',      cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/6/67/Fox_News_Channel_logo.svg',                                                                                                   url:'https://stream.livenewsplay.com:9555/hls/foxnewssd/index.m3u8?token=438097d01370fd77d1f642d0c9492f41&expires=1772883456&sig=f85beda0fcbbca7bd35ff9bef12a5f77a395d18ccc89d4cf7b3576e616443c2c' },
-  { id:'l_nbc',    name:'NBC News',      cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/NBC_logo.svg/1280px-NBC_logo.svg.png',                                                                                  url:'https://d1bl6tskrpq9ze.cloudfront.net/hls/master.m3u8?ads.xumo_channelId=99984003' },
-  { id:'l_abc',    name:'ABC News',      cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/ABC_News_logo_2021.svg/1280px-ABC_News_logo_2021.svg.png',                                                              url:'https://aegis-cloudfront-1.tubi.video/d6cbb0de-68e4-4f3b-82f9-bf5d526e0bde/index.m3u8' },
-  { id:'l_gbl',    name:'Global News',   cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d1/Global_News.svg/1280px-Global_News.svg.png',                                                                            url:'https://live.corusdigitaldev.com/groupd/live/49a91e7f-1023-430f-8d66-561055f3d0f7/live.isml/.m3u8' },
-  { id:'l_cpac',   name:'CPAC',          cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/1/17/CPAC_logo_black_color.png',                                                                                                   url:'', type:'youtube', ytChannelId:'UCiGdXn0NhyZ7X8GFkQwsQ7Q' },
-  { id:'l_cbc',    name:'CBC News',      cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/CBC_News_Logo.svg/960px-CBC_News_Logo.svg.png',                                                                         url:'https://amg00788-cbc-amg00788c4-xumo-us-3045.playouts.now.amagi.tv/master.m3u8' },
-  { id:'l_cbcnat', name:'CBC National',  cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/CBC_News_Logo.svg/960px-CBC_News_Logo.svg.png',                                                                         url:'https://cbcrclinear-tor.akamaized.net/hls/live/2042769/geo_allow_ca/CBCRCLINEAR_TOR_15/master5.m3u8' },
-  { id:'l_city',   name:'CityNews',      cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/CityNews_logo.svg/960px-CityNews_logo.svg.png',                                                                         url:'https://citynewsregional.akamaized.net/hls/live/1024053/Regional_Live_8/master.m3u8' },
-  { id:'l_msnow',  name:'MS NOW',        cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/MS_NOW_logo.svg/500px-MS_NOW_logo.svg.png',                                                                             url:'https://cdn.livenewsplayer.com/hls/msnbcsd/msnbcsd/playlist.m3u8?newzstarttime=1774664019&newzendtime=1774671219&newzhash=IbezTiU2SD07J9mpNPCApt3IWvb9wcUendK7y2581hI5Xe4FxZrhQfX1mHBc6bs3iKtar8MPSa5qGDLZ42ojKw==' },
-  { id:'l_bbc',    name:'BBC News',      cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/BBC_News_2022_%28Alt%29.svg/1280px-BBC_News_2022_%28Alt%29.svg.png',                                                    url:'https://dash2.antik.sk/live/test_bbc_world/playlist.m3u8' },
-  { id:'l_cnbc',   name:'CNBC',          cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/e/e3/CNBC_logo.svg',                                                                                                               url:'https://stream.livenewsplay.com:9443/hls/cnbc/cnbcsd.m3u8' },
-  { id:'l_blm',    name:'Bloomberg',     cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/5/5d/New_Bloomberg_Logo.svg',                                                                                                      url:'https://cdn4.skygo.mn/live/disk1/Bloomberg/HLSv3-FTA/Bloomberg.m3u8' },
-  { id:'l_reu',    name:'Reuters',       cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Reuters_logo_2024.svg/1280px-Reuters_logo_2024.svg.png',                                                                url:'https://amg00453-reuters-amg00453c1-plex-us-2106.playouts.now.amagi.tv/playlist/amg00453-reuters-reuters-plexus/playlist.m3u8' },
+  { id:'l_cnn',    name:'CNN',           cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/b/b1/CNN.svg',                                                                         url:'https://turnerlive.warnermediacdn.com/hls/live/586495/cnngo/cnn_slate/VIDEO_0_3564000.m3u8' },
+  { id:'l_cbs',    name:'CBS News',      cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/2/2e/CBS_News_2020_%28Stacked_II%29.svg',                                              url:'https://cbsn-us.cbsnstream.cbsnews.com/out/v1/55a8648e8f134e82a470f83d562deeca/master.m3u8' },
+  { id:'l_fox',    name:'Fox News',      cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/6/67/Fox_News_Channel_logo.svg',                                                       url:'https://stream.livenewsplay.com:9555/hls/foxnewssd/index.m3u8?token=438097d01370fd77d1f642d0c9492f41&expires=1772883456&sig=f85beda0fcbbca7bd35ff9bef12a5f77a395d18ccc89d4cf7b3576e616443c2c' },
+  { id:'l_nbc',    name:'NBC News',      cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/NBC_logo.svg/1280px-NBC_logo.svg.png',                                      url:'https://d1bl6tskrpq9ze.cloudfront.net/hls/master.m3u8?ads.xumo_channelId=99984003' },
+  { id:'l_abc',    name:'ABC News',      cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/ABC_News_logo_2021.svg/1280px-ABC_News_logo_2021.svg.png',                  url:'https://aegis-cloudfront-1.tubi.video/d6cbb0de-68e4-4f3b-82f9-bf5d526e0bde/index.m3u8' },
+  { id:'l_gbl',    name:'Global News',   cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d1/Global_News.svg/1280px-Global_News.svg.png',                                url:'https://live.corusdigitaldev.com/groupd/live/49a91e7f-1023-430f-8d66-561055f3d0f7/live.isml/.m3u8' },
+  { id:'l_cpac',   name:'CPAC',          cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/1/17/CPAC_logo_black_color.png',                                                       url:'', type:'youtube', ytChannelId:'UCiGdXn0NhyZ7X8GFkQwsQ7Q' },
+  { id:'l_cbc',    name:'CBC News',      cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/CBC_News_Logo.svg/960px-CBC_News_Logo.svg.png',                             url:'https://amg00788-cbc-amg00788c4-xumo-us-3045.playouts.now.amagi.tv/master.m3u8' },
+  { id:'l_cbcnat', name:'CBC National',  cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/CBC_News_Logo.svg/960px-CBC_News_Logo.svg.png',                             url:'https://cbcrclinear-tor.akamaized.net/hls/live/2042769/geo_allow_ca/CBCRCLINEAR_TOR_15/master5.m3u8' },
+  { id:'l_city',   name:'CityNews',      cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/CityNews_logo.svg/960px-CityNews_logo.svg.png',                             url:'https://citynewsregional.akamaized.net/hls/live/1024053/Regional_Live_8/master.m3u8' },
+  { id:'l_msnow',  name:'MS NOW',        cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/MS_NOW_logo.svg/500px-MS_NOW_logo.svg.png',                                 url:'https://cdn.livenewsplayer.com/hls/msnbcsd/msnbcsd/playlist.m3u8?newzstarttime=1774664019&newzendtime=1774671219&newzhash=IbezTiU2SD07J9mpNPCApt3IWvb9wcUendK7y2581hI5Xe4FxZrhQfX1mHBc6bs3iKtar8MPSa5qGDLZ42ojKw==' },
+  { id:'l_bbc',    name:'BBC News',      cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/BBC_News_2022_%28Alt%29.svg/1280px-BBC_News_2022_%28Alt%29.svg.png',        url:'https://dash2.antik.sk/live/test_bbc_world/playlist.m3u8' },
+  { id:'l_cnbc',   name:'CNBC',          cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/e/e3/CNBC_logo.svg',                                                                   url:'https://stream.livenewsplay.com:9443/hls/cnbc/cnbcsd.m3u8' },
+  { id:'l_blm',    name:'Bloomberg',     cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/5/5d/New_Bloomberg_Logo.svg',                                                          url:'https://cdn4.skygo.mn/live/disk1/Bloomberg/HLSv3-FTA/Bloomberg.m3u8' },
+  { id:'l_reu',    name:'Reuters',       cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Reuters_logo_2024.svg/1280px-Reuters_logo_2024.svg.png',                    url:'https://amg00453-reuters-amg00453c1-plex-us-2106.playouts.now.amagi.tv/playlist/amg00453-reuters-reuters-plexus/playlist.m3u8' },
 ];
 
 // ─── GENRES ──────────────────────────────────────────────────────────────────
@@ -1224,19 +1224,140 @@ const SportsView=React.memo(({apiKey,onPlay,onCard})=>{
 });
 
 // ─── SKIP TIMESTAMPS ─────────────────────────────────────────────────────────
-const SkipBtn=React.memo(({mediaId,isTv,season,episode,elapsed,onSkip,settings})=>{
-  const[ts,setTs]=useState(null),[seg,setSeg]=useState(null),[vis,setVis]=useState(false);
-  const[autoSkipped,setAS]=useState({});const dismissed=useRef({});const prevKey=useRef(null);const ht=useRef(null);
-  useEffect(()=>{if(!settings?.enabled||!mediaId)return;let ok=true;(async()=>{try{let url,data;if(isTv&&season&&episode){url=`${INTRODB}/show/${mediaId}/season/${season}/episode/${episode}`;const r=await fetch(url,{signal:AbortSignal.timeout(8000)});if(r.ok)data=await r.json();}else if(!isTv){url=`${INTRODB}/movie/${mediaId}`;const r=await fetch(url,{signal:AbortSignal.timeout(8000)});if(r.ok)data=await r.json();}if(!ok||!data)return;const norm={};const toMs=v=>v>10000?v:v*1000;if(Array.isArray(data?.timestamps))data.timestamps.forEach(t=>{if(t.type)norm[t.type]={startMs:toMs(t.start??t.startTime??0),endMs:toMs(t.end??t.endTime??0)};});else['intro','recap','credits','preview','outro','opening','ending'].forEach(k=>{const s=data[k];if(!s)return;const sm=s.start_ms??toMs(s.startTime??s.start??0);const em=s.end_ms??toMs(s.endTime??s.end??0);if(em>sm)norm[k]={startMs:sm,endMs:em};});if(ok&&Object.keys(norm).length)setTs(norm);}catch{}})();return()=>{ok=false;};},[mediaId,isTv,season,episode,settings?.enabled]);
-  useEffect(()=>{setTs(null);setSeg(null);setVis(false);setAS({});dismissed.current={};clearTimeout(ht.current);prevKey.current=null;},[mediaId,season,episode]);
-  useEffect(()=>{if(!ts||!settings?.enabled)return;const elMs=elapsed*1000;const types=[['intro',settings.showIntro],['recap',settings.showRecap],['credits',settings.showCredits],['preview',settings.showPreview],['outro',settings.showCredits],['opening',settings.showIntro],['ending',settings.showCredits]];let found=null;for(const[type,en]of types){if(!en)continue;const s=ts[type];if(!s)continue;const k=`${type}_${s.startMs}`;if(dismissed.current[k])continue;if(elMs>=s.startMs&&elMs<=s.endMs){found={type,key:k,...s};break;}}if(found?.key!==prevKey.current){prevKey.current=found?.key||null;setSeg(found);if(found){if(settings.autoSkip&&!autoSkipped[found.key]){setAS(p=>({...p,[found.key]:true}));dismissed.current[found.key]=true;onSkip(Math.floor(found.endMs/1000));}else{setVis(true);clearTimeout(ht.current);ht.current=setTimeout(()=>setVis(false),(settings.buttonDuration||7)*1000);}}else setVis(false);}},[elapsed,ts,settings,autoSkipped,onSkip]);
-  const skip=()=>{if(!seg)return;dismissed.current[seg.key]=true;setVis(false);setSeg(null);prevKey.current=null;clearTimeout(ht.current);onSkip(Math.floor(seg.endMs/1000));};
-  const labels={intro:'Skip Intro',recap:'Skip Recap',credits:'Skip Credits',preview:'Skip Preview',outro:'Skip Credits',opening:'Skip Intro',ending:'Skip Credits'};
-  if(!vis||!seg||!settings?.enabled)return null;
-  return(
-    <div className="absolute bottom-20 md:bottom-24 right-4 md:right-10 z-50 au">
-      <button onClick={skip} className="flex items-center gap-2 md:gap-3 bg-white text-black px-6 md:px-8 py-3 md:py-4 rounded-full font-bold text-[14px] md:text-[15px] transition-all shadow-2xl outline-none group hover:scale-105">
-        {labels[seg.type]||'Skip'}<SkipForward className="w-4 h-4 md:w-5 md:h-5 group-hover:translate-x-1 transition-transform"/>
+const SkipBtn = React.memo(({ mediaId, isTv, season, episode, elapsed, onSkip, settings }) => {
+  const [segments, setSegments] = useState([]);
+  const [activeSeg, setActiveSeg] = useState(null);
+  const [dismissed, setDismissed] = useState(new Set());
+  const [autoSkipped, setAutoSkipped] = useState(new Set());
+
+  useEffect(() => {
+    if (!settings?.enabled || !mediaId) return;
+    let ok = true;
+    (async () => {
+      try {
+        const urls = isTv
+          ? [
+              `${INTRODB}/show/${mediaId}/season/${season}/episode/${episode}`,
+              `${INTRODB}/tv/${mediaId}/season/${season}/episode/${episode}` // Fallback path
+            ]
+          : [
+              `${INTRODB}/movie/${mediaId}`
+            ];
+
+        let data = null;
+        for (const url of urls) {
+          const r = await fetch(url, { signal: AbortSignal.timeout(5000) }).catch(() => null);
+          if (r?.ok) {
+            data = await r.json();
+            break;
+          }
+        }
+        
+        if (!ok || !data) return;
+
+        const parsedSegments = [];
+        const parseTime = v => {
+          let n = Number(v);
+          if (isNaN(n)) return 0;
+          return n > 30000 ? n / 1000 : n; // Normalize ms to sec
+        };
+
+        const items = data.data || data.results || data.timestamps || data;
+        
+        if (Array.isArray(items)) {
+          items.forEach(t => {
+            const type = (t.type || t.name || '').toLowerCase();
+            if (type) {
+              parsedSegments.push({
+                id: t.id || `${type}_${t.start}`,
+                type,
+                start: parseTime(t.start ?? t.startTime ?? t.start_time ?? 0),
+                end: parseTime(t.end ?? t.endTime ?? t.end_time ?? 0)
+              });
+            }
+          });
+        } else if (typeof items === 'object') {
+          Object.keys(items).forEach(k => {
+            const s = items[k];
+            if (s) {
+              parsedSegments.push({
+                id: k,
+                type: k.toLowerCase(),
+                start: parseTime(s.start_ms ? s.start_ms / 1000 : (s.start ?? s.startTime ?? 0)),
+                end: parseTime(s.end_ms ? s.end_ms / 1000 : (s.end ?? s.endTime ?? 0))
+              });
+            }
+          });
+        }
+        
+        if (ok) setSegments(parsedSegments.filter(s => s.end > s.start));
+      } catch {}
+    })();
+    return () => { ok = false; };
+  }, [mediaId, isTv, season, episode, settings?.enabled]);
+
+  useEffect(() => {
+    if (!segments.length || !settings?.enabled) return;
+
+    const current = segments.find(s => elapsed >= s.start && elapsed <= s.end);
+
+    if (current && settings.autoSkip && !autoSkipped.has(current.id)) {
+      setAutoSkipped(prev => new Set(prev).add(current.id));
+      setDismissed(prev => new Set(prev).add(current.id));
+      onSkip(Math.floor(current.end));
+      setActiveSeg(null);
+      return;
+    }
+
+    if (current && dismissed.has(current.id)) {
+      setActiveSeg(null);
+      return;
+    }
+
+    const enabledTypes = {
+      intro: settings.showIntro,
+      opening: settings.showIntro,
+      recap: settings.showRecap,
+      credits: settings.showCredits,
+      ending: settings.showCredits,
+      outro: settings.showCredits,
+      preview: settings.showPreview
+    };
+
+    if (current && enabledTypes[current.type]) {
+      setActiveSeg(current);
+    } else {
+      setActiveSeg(null);
+    }
+  }, [elapsed, segments, settings, autoSkipped, dismissed, onSkip]);
+
+  const handleSkip = () => {
+    if (!activeSeg) return;
+    setDismissed(prev => new Set(prev).add(activeSeg.id));
+    onSkip(Math.floor(activeSeg.end));
+    setActiveSeg(null);
+  };
+
+  const handleDismiss = (e) => {
+    e.stopPropagation();
+    if (!activeSeg) return;
+    setDismissed(prev => new Set(prev).add(activeSeg.id));
+    setActiveSeg(null);
+  };
+
+  if (!activeSeg) return null;
+
+  const labels = { intro: 'Skip Intro', recap: 'Skip Recap', credits: 'Skip Credits', preview: 'Skip Preview', outro: 'Skip Credits', opening: 'Skip Intro', ending: 'Skip Credits' };
+  const label = labels[activeSeg.type] || 'Skip';
+
+  return (
+    <div className="absolute bottom-24 right-8 z-[100] au flex items-center gap-2">
+      <button onClick={handleSkip} className="flex items-center gap-2 bg-white/95 text-black px-5 py-3 rounded-full font-bold text-[14px] md:text-[15px] shadow-[0_4px_20px_rgba(0,0,0,0.5)] outline-none hover:bg-white hover:scale-105 transition-all group">
+        <SkipForward className="w-4 h-4 md:w-5 md:h-5 group-hover:translate-x-0.5 transition-transform"/>
+        {label}
+      </button>
+      <button onClick={handleDismiss} className="w-8 h-8 md:w-10 md:h-10 bg-black/50 backdrop-blur-md text-white/70 hover:text-white rounded-full flex items-center justify-center outline-none border border-white/20 hover:bg-black/70 transition-all">
+        <X className="w-4 h-4"/>
       </button>
     </div>
   );
@@ -1252,9 +1373,11 @@ const Player=({media,config,onClose,sourceKey,vpSettings,skipSettings})=>{
   const isLive=media.isLive;
   const isTv=!isLive&&(media.media_type==='tv'||(!media.release_date&&media.name));
   const cfg=config||{season:1,episode:1};
+  
   useEffect(()=>{elapsedRef.current=elapsed;},[elapsed]);
   useEffect(()=>{m.current=true;lock();return()=>{m.current=false;unlock();};},[]);
   useEffect(()=>{const h=e=>{if(e.key==='Escape')onClose(elapsedRef.current);};window.addEventListener('keydown',h);return()=>window.removeEventListener('keydown',h);},[onClose]);
+  
   const buildSrc=useCallback((sk,st=0)=>{
     if(isLive)return media.url||'';
     const id=media.id;if(!id)return'';
@@ -1263,33 +1386,86 @@ const Player=({media,config,onClose,sourceKey,vpSettings,skipSettings})=>{
     const fn=SOURCES[sk]?.url;
     if(!fn)return'';
     let url=fn(t,id,s,e);
-    if(st>0)url+=`&progress=${Math.floor(st)}`;
+    if(st>0){
+      const char = url.includes('?') ? '&' : '?';
+      url+=`${char}t=${Math.floor(st)}&time=${Math.floor(st)}&progress=${Math.floor(st)}&start=${Math.floor(st)}`;
+    }
     return url;
   },[isLive,isTv,media,cfg]);
+  
   useEffect(()=>{
     setLoading(true);setErr(false);
     setSrc(buildSrc(srcKey,0));setSkipTime(0);setElapsed(0);
     clearInterval(elT.current);clearTimeout(loadT.current);
     loadT.current=setTimeout(()=>{if(m.current&&!isLive)setLoading(false);},15000);
   },[srcKey,buildSrc,isLive]);
-  const startElapsed=useCallback((from=0)=>{clearInterval(elT.current);elO.current=Date.now()-from*1000;elT.current=setInterval(()=>{if(m.current)setElapsed(Math.floor((Date.now()-elO.current)/1000));},500);},[]);
+  
+  const startElapsed=useCallback((from=0)=>{
+    clearInterval(elT.current);
+    elO.current=Date.now()-from*1000;
+    elT.current=setInterval(()=>{
+      if(m.current)setElapsed(Math.floor((Date.now()-elO.current)/1000));
+    },500);
+  },[]);
+  
   useEffect(()=>()=>{clearInterval(elT.current);clearTimeout(loadT.current);},[]);
+  
   useEffect(()=>{
     const handleMessage=(e)=>{
       try{
         const data=typeof e.data==='string'?JSON.parse(e.data):e.data;
-        if(data&&typeof data.timestamp==='number'){if(m.current)setElapsed(Math.floor(data.timestamp));}
+        let t = null;
+        if(data && typeof data.timestamp==='number') t = data.timestamp;
+        else if(data && (data.event === 'timeupdate' || data.name === 'timeupdate') && data.time !== undefined) t = data.time;
+        else if(data && data.currentTime !== undefined) t = data.currentTime;
+        
+        if(t !== null && m.current){
+          setElapsed(Math.floor(t));
+          elO.current = Date.now() - (t * 1000); 
+        }
       }catch(err){}
     };
     window.addEventListener('message',handleMessage);
     return()=>window.removeEventListener('message',handleMessage);
   },[]);
+
+  useEffect(() => {
+    const video = vRef.current;
+    if (!video) return;
+    const handleTimeUpdate = () => {
+      if (m.current) setElapsed(video.currentTime);
+    };
+    video.addEventListener('timeupdate', handleTimeUpdate);
+    return () => video.removeEventListener('timeupdate', handleTimeUpdate);
+  }, [isLive, src]);
+  
   const onLoad=useCallback(()=>{if(!m.current)return;clearTimeout(loadT.current);setLoading(false);setErr(false);startElapsed(skipTime);},[skipTime,startElapsed]);
-  const onSkipTo=useCallback(endSec=>{if(!m.current)return;setSrc(buildSrc(srcKey,endSec));setSkipTime(endSec);setIfrKey(k=>k+1);setLoading(true);setErr(false);clearTimeout(loadT.current);loadT.current=setTimeout(()=>{if(m.current)setLoading(false);},15000);startElapsed(endSec);setElapsed(endSec);},[srcKey,buildSrc,startElapsed]);
+  
+  const onSkipTo=useCallback(endSec=>{
+    if(!m.current)return;
+    if (vRef.current) {
+      vRef.current.currentTime = endSec;
+      setElapsed(endSec);
+    } else {
+      setSrc(buildSrc(srcKey,endSec));
+      setSkipTime(endSec);
+      setIfrKey(k=>k+1);
+      setLoading(true);
+      setErr(false);
+      clearTimeout(loadT.current);
+      loadT.current=setTimeout(()=>{if(m.current)setLoading(false);},15000);
+      startElapsed(endSec);
+      setElapsed(endSec);
+    }
+  },[srcKey,buildSrc,startElapsed]);
+  
   useEffect(()=>{if(!isLive||!src?.includes?.('.m3u8'))return;let hls;loadHls(()=>{setLoading(false);const v=vRef.current;if(!v)return;hls=initHls(v,src,true,{onParsed:()=>v.play().catch(()=>{}),onError:(e,d)=>{if(d.fatal){if(hls&&d.type===window.Hls?.ErrorTypes?.NETWORK_ERROR)hls.startLoad();else if(hls&&d.type===window.Hls?.ErrorTypes?.MEDIA_ERROR)hls.recoverMediaError();else{if(hls)hls.destroy();setErr(true);}}}});});return()=>{if(hls)hls.destroy();};},[isLive,src]);
+  
   const mMove=useCallback(()=>{setShowCtrl(true);clearTimeout(ctrlT.current);ctrlT.current=setTimeout(()=>{if(m.current)setShowCtrl(false);},3500);},[]);
   useEffect(()=>{window.addEventListener('mousemove',mMove);window.addEventListener('touchstart',mMove,{passive:true});mMove();return()=>{window.removeEventListener('mousemove',mMove);window.removeEventListener('touchstart',mMove);clearTimeout(ctrlT.current);};},[mMove]);
+  
   const handleClose=()=>onClose(elapsedRef.current);
+  
   return(
     <div className="fixed inset-0 z-[200] bg-black flex flex-col" style={{animation:'fadeUp .4s cubic-bezier(0.16,1,0.3,1) both'}}>
       {loading&&!isLive&&(
