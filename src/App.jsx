@@ -19,7 +19,14 @@ import {
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 
 // ─── FIREBASE ────────────────────────────────────────────────────────────────
-let firebaseConfig = {};
+let firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
 let fallbackAppId = 'default-app-id';
 try {
   if (typeof __firebase_config !== 'undefined') {
@@ -37,6 +44,7 @@ const GUEST_ACCESS_CODE = 'Streamonator Password 60000';
 const BASE      = 'https://api.themoviedb.org/3';
 const IMG       = 'https://image.tmdb.org/t/p/';
 const INTRODB_API_KEY = 'theintrodb:user_3BrDtfviRub3XiFlxs4PgerPmBK:au5JiTbnXbWUEJDiFjLVhBk8ZSncX17_yfv1l-D1JQg';
+const INTRODB   = 'https://api.theintrodb.com';
 
 const DEFAULT_TMDB = '9517f4751d84886b184cb4a4849e9f91';
 const DEFAULT_OMDB = '93a6d7d6';
