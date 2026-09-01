@@ -3,51 +3,34 @@ import {
   Play, Pause, Info, Search, X, ChevronRight, ChevronLeft, Clock, Bookmark,
   Settings, Monitor, Film, ArrowLeft, Trash2, LayoutGrid, User, Dribbble,
   Server, Maximize, Minimize, VolumeX, Volume2, RefreshCw, Square, LogOut,
-  Sidebar, AlertCircle, Eye, EyeOff, Mail, Lock, History, SkipForward, TrendingUp,
+  Sidebar, AlertCircle, Eye, EyeOff, Mail, Lock, SkipForward, TrendingUp,
   Timer, CalendarDays, PictureInPicture
 } from 'lucide-react';
-import { initializeApp } from 'firebase/app';
 import {
-  getAuth,
   onAuthStateChanged,
   signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
   sendPasswordResetEmail,
-  signInWithCustomToken
 } from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
-
-// ─── FIREBASE ────────────────────────────────────────────────────────────────
-let firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
-};
-let fallbackAppId = 'default-app-id';
-try {
-  if (typeof __firebase_config !== 'undefined') {
-    firebaseConfig = JSON.parse(__firebase_config);
-  }
-} catch (e) { console.warn('Could not load Firebase config'); }
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const appId = typeof __app_id !== 'undefined' ? __app_id : fallbackAppId;
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { auth, db } from './firebase.js';
 
 // ─── SYSTEM CONFIG ───────────────────────────────────────────────────────────
-const GUEST_ACCESS_CODE = 'Streamonator Password 60000';
+// TMDB/OMDB keys ship to the browser no matter what (TMDB's own docs say the
+// v3 key is meant for client-side use). We still keep them out of source
+// control so they can be rotated from the Netlify dashboard without a code
+// change. Set VITE_TMDB_API_KEY / VITE_OMDB_API_KEY in your .env (local) and
+// in Netlify → Site settings → Environment variables (production). Each user
+// can also override both from the in-app Settings screen.
 const BASE      = 'https://api.themoviedb.org/3';
 const IMG       = 'https://image.tmdb.org/t/p/';
-const INTRODB_API_KEY = 'theintrodb:user_3BrDtfviRub3XiFlxs4PgerPmBK:au5JiTbnXbWUEJDiFjLVhBk8ZSncX17_yfv1l-D1JQg';
-const INTRODB   = 'https://api.theintrodb.com';
+// TheIntroDB key is a real, billable personal credential — it is never sent
+// to the browser. Requests go through a Netlify serverless function
+// (netlify/functions/introdb.js) that holds the key server-side only.
+const INTRODB   = '/.netlify/functions/introdb';
 
-const DEFAULT_TMDB = '9517f4751d84886b184cb4a4849e9f91';
-const DEFAULT_OMDB = '93a6d7d6';
+const DEFAULT_TMDB = import.meta.env.VITE_TMDB_API_KEY || '';
+const DEFAULT_OMDB = import.meta.env.VITE_OMDB_API_KEY || '';
 const DEFAULT_CC = { size:'1.1rem', bg:'rgba(0,0,0,0.82)', color:'#fff', font:'system-ui,sans-serif', edge:'dropshadow' };
 const DEFAULT_VP = { autoNext:true, episodeList:true };
 const DEFAULT_SK = { enabled:true, showIntro:true, showRecap:true, showCredits:true, showPreview:false, autoSkip:false, buttonDuration:7 };
@@ -165,24 +148,23 @@ const useLS=(k,d)=>{
 const useDebounce=(v,ms)=>{const[d,setD]=useState(v);useEffect(()=>{const t=setTimeout(()=>setD(v),ms);return()=>clearTimeout(t);},[v,ms]);return d;};
 
 // ─── USER DATA HOOK ──────────────────────────────────────────────────────────
-const useUserData=(uid,isGuest)=>{
+const useUserData=(uid)=>{
   const pfx=`ud_${uid||'g'}`;
-  const store=isGuest?sessionStorage:localStorage;
   const timers=useRef({});const mounted=useRef(true);
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
-  const[settings,setS]=useState(()=>{try{const v=store.getItem(`${pfx}_s`);return v?{...DEFAULT_SETTINGS,...JSON.parse(v)}:DEFAULT_SETTINGS;}catch{return DEFAULT_SETTINGS;}});
-  const[history,setH]=useState(()=>{try{const v=store.getItem(`${pfx}_h`);return v?JSON.parse(v):[];}catch{return[];}});
-  const[watchlist,setW]=useState(()=>{try{const v=store.getItem(`${pfx}_w`);return v?JSON.parse(v):[];}catch{return[];}});
+  const[settings,setS]=useState(()=>{try{const v=localStorage.getItem(`${pfx}_s`);return v?{...DEFAULT_SETTINGS,...JSON.parse(v)}:DEFAULT_SETTINGS;}catch{return DEFAULT_SETTINGS;}});
+  const[history,setH]=useState(()=>{try{const v=localStorage.getItem(`${pfx}_h`);return v?JSON.parse(v):[];}catch{return[];}});
+  const[watchlist,setW]=useState(()=>{try{const v=localStorage.getItem(`${pfx}_w`);return v?JSON.parse(v):[];}catch{return[];}});
   const[loaded,setLoaded]=useState(false);
   useEffect(()=>{
-    if(!uid||isGuest){setLoaded(true);return;}
+    if(!uid){setLoaded(true);return;}
     let ok=true;
     (async()=>{
       try{
         const[sd,hd,wd]=await Promise.all([
-          getDoc(doc(db,'artifacts',appId,'users',uid,'data','settings')),
-          getDoc(doc(db,'artifacts',appId,'users',uid,'data','history')),
-          getDoc(doc(db,'artifacts',appId,'users',uid,'data','watchlist'))
+          getDoc(doc(db,'users',uid,'data','settings')),
+          getDoc(doc(db,'users',uid,'data','history')),
+          getDoc(doc(db,'users',uid,'data','watchlist'))
         ]);
         if(!ok)return;
         if(sd.exists()){const v={...DEFAULT_SETTINGS,...sd.data()};setS(v);localStorage.setItem(`${pfx}_s`,JSON.stringify(v));}
@@ -192,15 +174,15 @@ const useUserData=(uid,isGuest)=>{
       if(ok)setLoaded(true);
     })();
     return()=>{ok=false;};
-  },[uid,isGuest,pfx]);
+  },[uid,pfx]);
   const save=(key,getData)=>{
-    if(!uid||isGuest)return;
+    if(!uid)return;
     clearTimeout(timers.current[key]);
-    timers.current[key]=setTimeout(async()=>{try{const v=getData();await setDoc(doc(db,'artifacts',appId,'users',uid,'data',key),key==='settings'?v:{items:v});}catch(e){console.error(e);}},1500);
+    timers.current[key]=setTimeout(async()=>{try{const v=getData();await setDoc(doc(db,'users',uid,'data',key),key==='settings'?v:{items:v});}catch(e){console.error(e);}},1500);
   };
-  const saveSettings=useCallback(val=>{const n=val instanceof Function?val(settings):val;setS(n);store.setItem(`${pfx}_s`,JSON.stringify(n));save('settings',()=>n);},[settings,pfx]);
-  const saveHistory=useCallback(val=>{const n=val instanceof Function?val(history):val;setH(n);store.setItem(`${pfx}_h`,JSON.stringify(n));save('history',()=>n);},[history,pfx]);
-  const saveWatchlist=useCallback(val=>{const n=val instanceof Function?val(watchlist):val;setW(n);store.setItem(`${pfx}_w`,JSON.stringify(n));save('watchlist',()=>n);},[watchlist,pfx]);
+  const saveSettings=useCallback(val=>{const n=val instanceof Function?val(settings):val;setS(n);localStorage.setItem(`${pfx}_s`,JSON.stringify(n));save('settings',()=>n);},[settings,pfx]);
+  const saveHistory=useCallback(val=>{const n=val instanceof Function?val(history):val;setH(n);localStorage.setItem(`${pfx}_h`,JSON.stringify(n));save('history',()=>n);},[history,pfx]);
+  const saveWatchlist=useCallback(val=>{const n=val instanceof Function?val(watchlist):val;setW(n);localStorage.setItem(`${pfx}_w`,JSON.stringify(n));save('watchlist',()=>n);},[watchlist,pfx]);
   return{settings,saveSettings,history,saveHistory,watchlist,saveWatchlist,loaded};
 };
 
@@ -239,26 +221,23 @@ const G=()=>(
 const Spin=({sz=8,c='#fff'})=><div className={`w-${sz} h-${sz} rounded-full border-[3px] sp`} style={{borderColor:`${c}33`,borderTopColor:c}}/>;
 
 // ─── LOGIN SCREEN ────────────────────────────────────────────────────────────
-const LoginScreen=({onGuest})=>{
+const LoginScreen=({initialError})=>{
   const[tab,setTab]=useState('in');
   const[email,setEmail]=useState('');
   const[pw,setPw]=useState('');
-  const[guestCode,setGuestCode]=useState('');
   const[showPw,setShowPw]=useState(false);
-  const[err,setErr]=useState('');
+  const[err,setErr]=useState(initialError||'');
   const[msg,setMsg]=useState('');
   const[loading,setLoading]=useState(false);
-  const fmtErr=e=>{const m=e?.code||'';if(m.includes('user-not-found')||m.includes('wrong-password')||m.includes('invalid-credential'))return'Incorrect email or password.';if(m.includes('email-already'))return'An account with this email already exists.';if(m.includes('weak-password'))return'Password must be at least 6 characters.';if(m.includes('invalid-email'))return'Please enter a valid email address.';if(m.includes('too-many-requests'))return'Too many attempts. Please wait a moment.';return e?.message||'Something went wrong. Please try again.';};
+  const fmtErr=e=>{const m=e?.code||'';if(m.includes('user-not-found')||m.includes('wrong-password')||m.includes('invalid-credential'))return'Incorrect email or password.';if(m.includes('weak-password'))return'Password must be at least 6 characters.';if(m.includes('invalid-email'))return'Please enter a valid email address.';if(m.includes('too-many-requests'))return'Too many attempts. Please wait a moment.';return e?.message||'Something went wrong. Please try again.';};
   const submit=async evt=>{
     evt.preventDefault();setErr('');setMsg('');setLoading(true);
     try{
       if(tab==='reset'){await sendPasswordResetEmail(auth,email);setMsg('Password reset email sent. Check your inbox.');setTab('in');}
-      else if(tab==='up'){await createUserWithEmailAndPassword(auth,email,pw);}
       else{await signInWithEmailAndPassword(auth,email,pw);}
     }catch(e){setErr(fmtErr(e));}
     setLoading(false);
   };
-  const handleGuest=()=>{if(guestCode!==GUEST_ACCESS_CODE){setErr('Invalid Guest Access Code.');return;}onGuest();};
   return(
     <div className="min-h-screen bg-[#050505] flex items-center justify-center p-5 relative overflow-hidden">
       <G/>
@@ -272,10 +251,10 @@ const LoginScreen=({onGuest})=>{
           </div>
         </div>
         <h1 className="text-3xl font-bold tracking-tight text-center text-white mb-2">
-          {tab==='in'?'Sign In':tab==='up'?'Create Account':'Reset Password'}
+          {tab==='in'?'Sign In':'Reset Password'}
         </h1>
         <p className="text-white/60 text-[15px] text-center mb-8 font-medium">
-          {tab==='in'?'Enter your details to continue':tab==='up'?'Enter your email and a password':'Instructions will be sent to your email'}
+          {tab==='in'?'Enter your details to continue':'Instructions will be sent to your email'}
         </p>
         <form onSubmit={submit} className="space-y-3">
           <div className="relative">
@@ -297,36 +276,21 @@ const LoginScreen=({onGuest})=>{
           {msg&&<p className="text-green-400 text-[13px] py-3 px-4 bg-green-500/10 rounded-xl border border-green-500/20">{msg}</p>}
           <button type="submit" disabled={loading}
             className="w-full py-4 mt-2 rounded-xl font-bold text-[15px] transition-all disabled:opacity-50 flex items-center justify-center bg-white text-black hover:bg-gray-200">
-            {loading?<Spin sz={5} c="#000"/>:tab==='in'?'Sign In':tab==='up'?'Register':'Send Instructions'}
+            {loading?<Spin sz={5} c="#000"/>:tab==='in'?'Sign In':'Send Instructions'}
           </button>
         </form>
         <div className="mt-6 space-y-3 text-center">
           {tab==='in'&&<button onClick={()=>{setTab('reset');setErr('');setMsg('');}} className="text-[14px] text-white/60 hover:text-white transition-colors outline-none font-medium">Forgot password?</button>}
-          <div className="text-[14px] text-white/60 font-medium">
-            {tab==='in'?<>Don't have an account? <button onClick={()=>{setTab('up');setErr('');}} className="text-white hover:underline font-bold outline-none ml-1">Sign up</button></> :<>Already have an account? <button onClick={()=>{setTab('in');setErr('');}} className="text-white hover:underline font-bold outline-none ml-1">Sign in</button></>}
-          </div>
+          {tab==='reset'&&<button onClick={()=>{setTab('in');setErr('');setMsg('');}} className="text-[14px] text-white/60 hover:text-white transition-colors outline-none font-medium">Back to sign in</button>}
         </div>
-        {tab==='in'&&(
-          <div className="mt-8 pt-6 border-t border-white/10 space-y-3">
-            <div className="relative">
-              <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40"/>
-              <input type="password" placeholder="Guest Access Code" value={guestCode} onChange={e=>{setGuestCode(e.target.value);setErr('');}}
-                className="w-full bg-[#121212] border border-white/10 text-white pl-12 px-5 py-4 rounded-xl outline-none focus:border-white/30 focus:bg-[#18181b] placeholder:text-white/40 text-[15px] transition-all"/>
-            </div>
-            <button onClick={handleGuest} disabled={!guestCode.trim()}
-              className="w-full py-3.5 rounded-xl text-[14px] font-bold text-white/80 bg-[#121212] border border-white/10 hover:bg-[#18181b] transition-all outline-none disabled:opacity-50">
-              Continue as Guest
-            </button>
-            <p className="text-white/40 text-[12px] text-center mt-3 font-medium">Guest mode does not save watch history.</p>
-          </div>
-        )}
+        <p className="text-white/40 text-[12px] text-center mt-8 font-medium">Private access only. If you don't have an account, ask the owner to create one for you.</p>
       </div>
     </div>
   );
 };
 
 // ─── TOP NAV ─────────────────────────────────────────────────────────────────
-const TopNav=React.memo(({tab,setTab,focus,user,isGuest})=>{
+const TopNav=React.memo(({tab,setTab,focus,user})=>{
   const[scroll,setScroll]=useState(false);
   const[menu,setMenu]=useState(false);
   const menuRef=useRef(null);
@@ -366,15 +330,15 @@ const TopNav=React.memo(({tab,setTab,focus,user,isGuest})=>{
             ))}
             <div className="relative ml-1 md:ml-2" ref={menuRef}>
               <button onClick={()=>setMenu(v=>!v)} className={cn('p-1.5 rounded-full flex items-center justify-center font-bold transition-all outline-none text-white',menu?'bg-white/20':'opacity-90 hover:opacity-100')}>
-                {isGuest?<User className="w-[22px] h-[22px]"/>:<div className="w-[28px] h-[28px] rounded-full border-2 border-current flex items-center justify-center text-[13px]">{initial}</div>}
+                <div className="w-[28px] h-[28px] rounded-full border-2 border-current flex items-center justify-center text-[13px]">{initial}</div>
               </button>
               {menu&&(
                 <div className="absolute right-0 top-12 w-60 md:w-64 bg-[#121212] border border-white/10 rounded-2xl p-3 shadow-2xl as z-[200]">
-                  {!isGuest&&<div className="flex flex-col items-center mb-3 pb-4 border-b border-white/10 pt-2">
+                  <div className="flex flex-col items-center mb-3 pb-4 border-b border-white/10 pt-2">
                     <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-white/10 flex items-center justify-center text-xl md:text-2xl font-bold mb-3 shadow-inner text-white">{initial}</div>
                     <p className="text-white font-bold text-[15px] truncate w-full text-center px-2">{user?.displayName||user?.email}</p>
                     <p className="text-white/50 text-[12px] font-medium mt-0.5 truncate w-full text-center px-2">{user?.email}</p>
-                  </div>}
+                  </div>
                   <button onClick={()=>{setTab('settings');setMenu(false);}} className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-[#27272a] text-white/90 hover:text-white text-[14px] font-bold transition-all outline-none">
                     <Settings className="w-4 h-4"/>Settings
                   </button>
@@ -1236,19 +1200,18 @@ const SkipBtn = React.memo(({ mediaId, isTv, season, episode, elapsed, onSkip, s
       try {
         const urls = isTv
           ? [
-              `${INTRODB}/media/tv/${mediaId}/${season}/${episode}`
+              `${INTRODB}?path=${encodeURIComponent(`/media/tv/${mediaId}/${season}/${episode}`)}`
             ]
           : [
-              `${INTRODB}/media/movie/${mediaId}`
+              `${INTRODB}?path=${encodeURIComponent(`/media/movie/${mediaId}`)}`
             ];
 
         let data = null;
         for (const url of urls) {
-          const r = await fetch(url, { 
-            headers: {
-              'Authorization': `Bearer ${INTRODB_API_KEY}`
-            },
-            signal: AbortSignal.timeout(5000) 
+          // No Authorization header here — the real TheIntroDB key lives only
+          // in the Netlify function's server-side environment variable.
+          const r = await fetch(url, {
+            signal: AbortSignal.timeout(5000)
           }).catch(() => null);
           if (r?.ok) {
             data = await r.json();
@@ -1847,7 +1810,7 @@ const SettingsView=({settings,save,user})=>{
                 <div className="w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center text-2xl md:text-3xl font-black text-black bg-white shadow-xl">{user?.displayName?.[0]||user?.email?.[0]||'?'}</div>
                 <div>
                   <p className="text-white font-bold text-xl md:text-2xl tracking-tight">{user?.displayName||'User Account'}</p>
-                  <p className="text-white/60 text-[14px] md:text-[16px] font-bold mt-1">{user?.email||'Guest'}</p>
+                  <p className="text-white/60 text-[14px] md:text-[16px] font-bold mt-1">{user?.email}</p>
                 </div>
               </div>
               <button onClick={()=>firebaseSignOut(auth)} className="w-full flex items-center justify-center gap-2.5 md:gap-3 py-4 md:py-5 rounded-xl md:rounded-2xl bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 font-bold text-[14px] md:text-[16px] transition-all outline-none">
@@ -2034,10 +1997,12 @@ const HistoryView=React.memo(({history,saveHistory,onPlay,onCard})=>{
 });
 
 // ─── ROOT APP ────────────────────────────────────────────────────────────────
+const ALLOWED_EMAILS=(import.meta.env.VITE_ALLOWED_EMAILS||'').split(',').map(e=>e.trim().toLowerCase()).filter(Boolean);
+
 export default function App(){
   const[mounted,setMounted]=useState(false);
   const[user,setUser]=useState(undefined);
-  const[isGuest,setIsGuest]=useState(false);
+  const[authError,setAuthError]=useState('');
   const[tab,setTabRaw]=useState('home');
   const[genre,setGenre]=useState('All');
   const[focus,setFocus]=useState(false);
@@ -2047,13 +2012,22 @@ export default function App(){
   const[playCfg,setPlayCfg]=useState(null);
   const playStartRef=useRef(null);
   useEffect(()=>{
-    const initAuth=async()=>{if(typeof __initial_auth_token!=='undefined'&&__initial_auth_token){await signInWithCustomToken(auth,__initial_auth_token);}};
-    initAuth();
-    const u=onAuthStateChanged(auth,u=>{setUser(u||null);setMounted(true);});
+    const u=onAuthStateChanged(auth,async u=>{
+      // Defense in depth: the real gate is the Firestore security rules
+      // (which only allow these emails), but bouncing anyone else out of
+      // the UI immediately avoids a confusing "logged in, sees nothing" state.
+      if(u&&ALLOWED_EMAILS.length&&!ALLOWED_EMAILS.includes((u.email||'').toLowerCase())){
+        await firebaseSignOut(auth);
+        setAuthError("This account isn't authorized to use this app.");
+        setUser(null);setMounted(true);
+        return;
+      }
+      setUser(u||null);setMounted(true);
+    });
     return u;
   },[]);
   const uid=user?.uid||null;
-  const{settings,saveSettings,history,saveHistory,watchlist,saveWatchlist,loaded}=useUserData(uid,isGuest||!user);
+  const{settings,saveSettings,history,saveHistory,watchlist,saveWatchlist,loaded}=useUserData(uid);
   const histRef=useRef(history),wlRef=useRef(watchlist);
   useEffect(()=>{histRef.current=history;},[history]);
   useEffect(()=>{wlRef.current=watchlist;},[watchlist]);
@@ -2084,7 +2058,7 @@ export default function App(){
   }),[]);
   const toggleWL=useCallback(m=>saveWatchlist(p=>p.find(x=>x.id===m.id)?p.filter(x=>x.id!==m.id):[m,...p]),[saveWatchlist]);
   if(!mounted||user===undefined)return<div className="min-h-screen bg-[#050505] flex items-center justify-center"><G/><Spin sz={12}/></div>;
-  if(!user&&!isGuest)return<LoginScreen onGuest={()=>setIsGuest(true)}/>;
+  if(!user)return<LoginScreen initialError={authError}/>;
   if(!loaded)return<div className="min-h-screen bg-[#050505] flex items-center justify-center"><G/><Spin sz={12}/></div>;
   const apiKey=settings.apiKey;
   const vpS={...DEFAULT_VP,...(settings.vp||{})};
@@ -2093,7 +2067,7 @@ export default function App(){
   return(
     <div className="min-h-screen bg-[#050505] text-[#f5f5f7] overflow-x-hidden selection:bg-white/30 selection:text-white">
       <G/>
-      <TopNav tab={tab} setTab={setTab} focus={focus} user={user} isGuest={isGuest}/>
+      <TopNav tab={tab} setTab={setTab} focus={focus} user={user}/>
       <main>
         {tab==='home'&&<HomeView apiKey={apiKey} history={history} watchlist={watchlist} algoPrefs={algoPrefs} onPlay={handlePlay} onInfo={setSelMedia} toggleWL={toggleWL}/>}
         {tab==='live'&&<LiveTvView focus={focus} setFocus={setFocus}/>}

@@ -1,0 +1,21 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "guestCodes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "createdBy", "order": "ASCENDING" },
+        { "fieldPath": "used",      "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "guestSessions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

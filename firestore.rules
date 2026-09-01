@@ -2,11 +2,22 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Each authenticated user can only read/write documents under their own UID.
-    // Nobody else — including other authenticated users — can touch your data.
+    // Only these two people can read or write anything at all — everyone
+    // else is denied even if they somehow create a Firebase account.
+    // Replace the two placeholder emails below with the real sign-in
+    // emails for yourself and your friend.
+    function isAllowed() {
+      return request.auth != null
+             && request.auth.token.email in [
+                  'you@example.com',
+                  'friend@example.com'
+                ];
+    }
+
+    // Each allowed user can only read/write documents under their own UID.
+    // Nobody else — including your friend — can touch your data, and vice versa.
     match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null
-                         && request.auth.uid == userId;
+      allow read, write: if isAllowed() && request.auth.uid == userId;
     }
 
     // Deny everything else by default.
