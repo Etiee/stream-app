@@ -3,7 +3,7 @@ import {
   Play, Pause, Info, Search, X, ChevronRight, ChevronLeft, Clock, Bookmark,
   Settings, Monitor, Film, ArrowLeft, Trash2, LayoutGrid, User, Dribbble,
   Server, Maximize, Minimize, VolumeX, Volume2, RefreshCw, Square, LogOut,
-  Sidebar, AlertCircle, Eye, EyeOff, Mail, Lock, SkipForward, TrendingUp,
+  Sidebar, AlertCircle, Eye, EyeOff, Mail, Lock, TrendingUp,
   Timer, CalendarDays, PictureInPicture
 } from 'lucide-react';
 import {
@@ -24,19 +24,14 @@ import { auth, db } from './firebase.js';
 // can also override both from the in-app Settings screen.
 const BASE      = 'https://api.themoviedb.org/3';
 const IMG       = 'https://image.tmdb.org/t/p/';
-// TheIntroDB key is a real, billable personal credential — it is never sent
-// to the browser. Requests go through a Netlify serverless function
-// (netlify/functions/introdb.js) that holds the key server-side only.
-const INTRODB   = '/.netlify/functions/introdb';
 
 const DEFAULT_TMDB = import.meta.env.VITE_TMDB_API_KEY || '';
 const DEFAULT_OMDB = import.meta.env.VITE_OMDB_API_KEY || '';
 const DEFAULT_CC = { size:'1.1rem', bg:'rgba(0,0,0,0.82)', color:'#fff', font:'system-ui,sans-serif', edge:'dropshadow' };
 const DEFAULT_VP = { autoNext:true, episodeList:true };
-const DEFAULT_SK = { enabled:true, showIntro:true, showRecap:true, showCredits:true, showPreview:false, autoSkip:false, buttonDuration:7 };
 const DEFAULT_SETTINGS = {
   apiKey:DEFAULT_TMDB, omdbKey:DEFAULT_OMDB, sourceKey:'videasy',
-  algoPrefs:{excluded:[],boosted:[]}, cc:DEFAULT_CC, vp:DEFAULT_VP, skip:DEFAULT_SK,
+  algoPrefs:{excluded:[],boosted:[]}, cc:DEFAULT_CC, vp:DEFAULT_VP,
 };
 
 // ─── SOURCES ─────────────────────────────────────────────────────────────────
@@ -51,19 +46,20 @@ const SOURCES = {
 
 // ─── LIVE TV CHANNELS ────────────────────────────────────────────────────────
 const LIVE_CH = [
-  { id:'l_cnn',    name:'CNN',           cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/b/b1/CNN.svg',                                                                         url:'https://turnerlive.warnermediacdn.com/hls/live/586495/cnngo/cnn_slate/VIDEO_0_3564000.m3u8' },
+  { id:'l_cnn',    name:'CNN',           cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/b/b1/CNN.svg',                                                                         url:'https://cdnlivetv.tv/secure/api/v1/6a288d2781d8192bb76cb490/playlist.m3u8?token=NmEyODhkMjc4MWQ4MTkyYmI3NmNiNDkwOjE3ODgyNDk3MjYwMTU6Y2RubGl2ZXR2LnR2OjczN2JhNmI1MzI5MzdhZTYuNTg4YjQ5NGJjMTQzMjIzZmIzZmE1YmEzNDRmNDgxOTIzMDY5YTYxZTE3ZTQxZDNiMDRjMTAxMTY3ODI3OTM4MA' },
   { id:'l_cbs',    name:'CBS News',      cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/2/2e/CBS_News_2020_%28Stacked_II%29.svg',                                              url:'https://cbsn-us.cbsnstream.cbsnews.com/out/v1/55a8648e8f134e82a470f83d562deeca/master.m3u8' },
-  { id:'l_fox',    name:'Fox News',      cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/6/67/Fox_News_Channel_logo.svg',                                                       url:'https://stream.livenewsplay.com:9555/hls/foxnewssd/index.m3u8?token=438097d01370fd77d1f642d0c9492f41&expires=1772883456&sig=f85beda0fcbbca7bd35ff9bef12a5f77a395d18ccc89d4cf7b3576e616443c2c' },
+  { id:'l_fox',    name:'Fox News',      cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/6/67/Fox_News_Channel_logo.svg',                                                       url:'https://cdnlivetv.tv/secure/api/v1/6a288d2781d8192bb76cb224/playlist.m3u8?token=NmEyODhkMjc4MWQ4MTkyYmI3NmNiMjI0OjE3ODgyNTAwMjM0NDc6Y2RubGl2ZXR2LnR2OjllOTI1ZThjZTY5NzBhYTYuYzdmYmNiZGZkM2M1NjU2M2NhYTYwODA1YzA2MzFkZmRmZjA4ODVlMDJkZWIwYzZkZWJhOTM0NDgzYTYwZjM0OQ' },
   { id:'l_nbc',    name:'NBC News',      cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/NBC_logo.svg/1280px-NBC_logo.svg.png',                                      url:'https://d1bl6tskrpq9ze.cloudfront.net/hls/master.m3u8?ads.xumo_channelId=99984003' },
   { id:'l_abc',    name:'ABC News',      cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/ABC_News_logo_2021.svg/1280px-ABC_News_logo_2021.svg.png',                  url:'https://aegis-cloudfront-1.tubi.video/d6cbb0de-68e4-4f3b-82f9-bf5d526e0bde/index.m3u8' },
   { id:'l_gbl',    name:'Global News',   cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d1/Global_News.svg/1280px-Global_News.svg.png',                                url:'https://live.corusdigitaldev.com/groupd/live/49a91e7f-1023-430f-8d66-561055f3d0f7/live.isml/.m3u8' },
   { id:'l_cpac',   name:'CPAC',          cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/1/17/CPAC_logo_black_color.png',                                                       url:'', type:'youtube', ytChannelId:'UCiGdXn0NhyZ7X8GFkQwsQ7Q' },
   { id:'l_cbc',    name:'CBC News',      cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/CBC_News_Logo.svg/960px-CBC_News_Logo.svg.png',                             url:'https://amg00788-cbc-amg00788c4-xumo-us-3045.playouts.now.amagi.tv/master.m3u8' },
-  { id:'l_cbcnat', name:'CBC National',  cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/CBC_News_Logo.svg/960px-CBC_News_Logo.svg.png',                             url:'https://cbcrclinear-tor.akamaized.net/hls/live/2042769/geo_allow_ca/CBCRCLINEAR_TOR_15/master5.m3u8' },
+  { id:'l_cbcnat', name:'CBC National',  cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/CBC_News_Logo.svg/960px-CBC_News_Logo.svg.png',                             url:'https://cbcrclive-tor.akamaized.net/linear/hls/pa/event/Sd4txpXqTsyhNb8f0NqMRQ/stream/2060b07b-217e-4b6b-9b6d-490c652769c2:TUL/variant/297851113ae8a85a5bb293054f621600/bandwidth/3261500.m3u8' },
   { id:'l_city',   name:'CityNews',      cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/CityNews_logo.svg/960px-CityNews_logo.svg.png',                             url:'https://citynewsregional.akamaized.net/hls/live/1024053/Regional_Live_8/master.m3u8' },
-  { id:'l_msnow',  name:'MS NOW',        cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/MS_NOW_logo.svg/500px-MS_NOW_logo.svg.png',                                 url:'https://cdn.livenewsplayer.com/hls/msnbcsd/msnbcsd/playlist.m3u8?newzstarttime=1774664019&newzendtime=1774671219&newzhash=IbezTiU2SD07J9mpNPCApt3IWvb9wcUendK7y2581hI5Xe4FxZrhQfX1mHBc6bs3iKtar8MPSa5qGDLZ42ojKw==' },
+  { id:'l_msnow',  name:'MS NOW',        cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/MS_NOW_logo.svg/500px-MS_NOW_logo.svg.png',                                 url:'https://ntv.cx/embed?t=WElXbjZyTXRVZ3RDRDYyQjhiZjAwcUtwQlo0Z1ZjTXd3WDlwOUpnTkFHdHlTNjdaSldzSGNoV3RqM0xVb012RQ', type:'iframe' },
+  { id:'l_ctv',    name:'CTV News',      cat:'News', logo:'https://commons.wikimedia.org/wiki/Special:FilePath/CTV_News_2019.svg',                                                                 url:'https://ntv.cx/embed?t=WElXbjZyTXRVZ3RDRDYyQjhiZjAwdkNrYzA2Sm50MW1aeThZSTBsNW5TSnJvZVFoYVdhdkFUclpoTVI2WDdKSQ', type:'iframe' },
   { id:'l_bbc',    name:'BBC News',      cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/BBC_News_2022_%28Alt%29.svg/1280px-BBC_News_2022_%28Alt%29.svg.png',        url:'https://dash2.antik.sk/live/test_bbc_world/playlist.m3u8' },
-  { id:'l_cnbc',   name:'CNBC',          cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/e/e3/CNBC_logo.svg',                                                                   url:'https://stream.livenewsplay.com:9443/hls/cnbc/cnbcsd.m3u8' },
+  { id:'l_cnbc',   name:'CNBC',          cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/e/e3/CNBC_logo.svg',                                                                   url:'https://cdnlivetv.tv/secure/api/v1/6a288d2781d8192bb76cb492/playlist.m3u8?token=NmEyODhkMjc4MWQ4MTkyYmI3NmNiNDkyOjE3ODgzMzQwNDIxNTQ6Y2RubGl2ZXR2LnR2OjU0MDVlYzZjZGUyMmNkMmMuM2Q5YTQxMTFhZWY0MDhkZTE3OTI5ODRjMWU0MjkzYzFkM2Q3MGM4NmU5MGVjN2IxZTNkOWYzMzk1ZmM2YjEwOQ' },
   { id:'l_blm',    name:'Bloomberg',     cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/5/5d/New_Bloomberg_Logo.svg',                                                          url:'https://cdn4.skygo.mn/live/disk1/Bloomberg/HLSv3-FTA/Bloomberg.m3u8' },
   { id:'l_reu',    name:'Reuters',       cat:'News', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Reuters_logo_2024.svg/1280px-Reuters_logo_2024.svg.png',                    url:'https://amg00453-reuters-amg00453c1-plex-us-2106.playouts.now.amagi.tv/playlist/amg00453-reuters-reuters-plexus/playlist.m3u8' },
 ];
@@ -148,17 +144,39 @@ const useLS=(k,d)=>{
 const useDebounce=(v,ms)=>{const[d,setD]=useState(v);useEffect(()=>{const t=setTimeout(()=>setD(v),ms);return()=>clearTimeout(t);},[v,ms]);return d;};
 
 // ─── USER DATA HOOK ──────────────────────────────────────────────────────────
+// IMPORTANT: `uid` is `undefined` until Firebase Auth reports back (which
+// happens async, after first render), then becomes a real string once
+// signed in. We must NOT read/write localStorage under a guessed "guest"
+// key before that — React's useState(() => ...) initializer only runs on
+// the very first render, so if it read `ud_g_*` while uid was still
+// unknown, this hook would stay bound to the wrong (empty) key for the
+// rest of the session even after the real uid showed up — which is what
+// was making settings/history/watchlist look like they vanished on every
+// refresh. Instead we keep state empty until uid is known, then load
+// exactly once per signed-in uid, from that uid's own prefixed key.
 const useUserData=(uid)=>{
-  const pfx=`ud_${uid||'g'}`;
-  const timers=useRef({});const mounted=useRef(true);
-  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
-  const[settings,setS]=useState(()=>{try{const v=localStorage.getItem(`${pfx}_s`);return v?{...DEFAULT_SETTINGS,...JSON.parse(v)}:DEFAULT_SETTINGS;}catch{return DEFAULT_SETTINGS;}});
-  const[history,setH]=useState(()=>{try{const v=localStorage.getItem(`${pfx}_h`);return v?JSON.parse(v):[];}catch{return[];}});
-  const[watchlist,setW]=useState(()=>{try{const v=localStorage.getItem(`${pfx}_w`);return v?JSON.parse(v):[];}catch{return[];}});
+  const timers=useRef({});
+  const pfxRef=useRef(null);
+  const[settings,setS]=useState(DEFAULT_SETTINGS);
+  const[history,setH]=useState([]);
+  const[watchlist,setW]=useState([]);
   const[loaded,setLoaded]=useState(false);
   useEffect(()=>{
-    if(!uid){setLoaded(true);return;}
+    if(uid===undefined)return; // auth hasn't resolved yet — wait
+    if(!uid){ // signed out — nothing to load
+      pfxRef.current=null;setS(DEFAULT_SETTINGS);setH([]);setW([]);setLoaded(true);
+      return;
+    }
+    const pfx=`ud_${uid}`;
+    pfxRef.current=pfx;
     let ok=true;
+    // Instant local read (per-uid key) so the UI has data immediately,
+    // then reconcile with Firestore, which is the source of truth.
+    try{
+      const s=localStorage.getItem(`${pfx}_s`);if(s)setS({...DEFAULT_SETTINGS,...JSON.parse(s)});
+      const h=localStorage.getItem(`${pfx}_h`);if(h)setH(JSON.parse(h));
+      const w=localStorage.getItem(`${pfx}_w`);if(w)setW(JSON.parse(w));
+    }catch(e){console.error(e);}
     (async()=>{
       try{
         const[sd,hd,wd]=await Promise.all([
@@ -174,15 +192,16 @@ const useUserData=(uid)=>{
       if(ok)setLoaded(true);
     })();
     return()=>{ok=false;};
-  },[uid,pfx]);
+  },[uid]);
   const save=(key,getData)=>{
-    if(!uid)return;
+    const pfx=pfxRef.current;
+    if(!uid||!pfx)return;
     clearTimeout(timers.current[key]);
     timers.current[key]=setTimeout(async()=>{try{const v=getData();await setDoc(doc(db,'users',uid,'data',key),key==='settings'?v:{items:v});}catch(e){console.error(e);}},1500);
   };
-  const saveSettings=useCallback(val=>{const n=val instanceof Function?val(settings):val;setS(n);localStorage.setItem(`${pfx}_s`,JSON.stringify(n));save('settings',()=>n);},[settings,pfx]);
-  const saveHistory=useCallback(val=>{const n=val instanceof Function?val(history):val;setH(n);localStorage.setItem(`${pfx}_h`,JSON.stringify(n));save('history',()=>n);},[history,pfx]);
-  const saveWatchlist=useCallback(val=>{const n=val instanceof Function?val(watchlist):val;setW(n);localStorage.setItem(`${pfx}_w`,JSON.stringify(n));save('watchlist',()=>n);},[watchlist,pfx]);
+  const saveSettings=useCallback(val=>{const n=val instanceof Function?val(settings):val;setS(n);if(pfxRef.current)localStorage.setItem(`${pfxRef.current}_s`,JSON.stringify(n));save('settings',()=>n);},[settings,uid]);
+  const saveHistory=useCallback(val=>{const n=val instanceof Function?val(history):val;setH(n);if(pfxRef.current)localStorage.setItem(`${pfxRef.current}_h`,JSON.stringify(n));save('history',()=>n);},[history,uid]);
+  const saveWatchlist=useCallback(val=>{const n=val instanceof Function?val(watchlist):val;setW(n);if(pfxRef.current)localStorage.setItem(`${pfxRef.current}_w`,JSON.stringify(n));save('watchlist',()=>n);},[watchlist,uid]);
   return{settings,saveSettings,history,saveHistory,watchlist,saveWatchlist,loaded};
 };
 
@@ -725,6 +744,21 @@ const YoutubeLiveTile=React.memo(({ch,isMain,onFocusClick,idle,hasAudio})=>{
   );
 });
 
+// Generic embed tile for channels that only ship as an embeddable player
+// page (e.g. ntv.cx) rather than a direct .m3u8 — we can't drive volume/CC/
+// PiP through <video> for these since it's an iframe, same trade-off as
+// the YouTube tile above.
+const EmbedLiveTile=React.memo(({ch,isMain,onFocusClick,idle})=>(
+  <div onClick={onFocusClick} className="relative w-full h-full overflow-hidden rounded-xl md:rounded-2xl bg-black cursor-pointer transition-all duration-300 ring-1 ring-white/10 hover:ring-white/30">
+    <iframe src={ch.url} className="w-full h-full border-0 object-contain pointer-events-none" allow="autoplay; fullscreen; encrypted-media" allowFullScreen title={ch.name}/>
+    <div className={cn("absolute top-3 left-3 md:top-4 md:left-4 z-10 pointer-events-none transition-opacity duration-500", idle ? "opacity-0" : "opacity-100")}>
+      <div className="bg-white/95 rounded-md px-1.5 py-1 md:px-2 md:py-1.5 shadow-[0_2px_8px_rgba(0,0,0,0.5)] flex items-center justify-center">
+        <img src={ch.logo} className="h-3 md:h-4 w-auto max-w-[60px] object-contain" alt="" onError={e=>{e.target.style.display='none';}}/>
+      </div>
+    </div>
+  </div>
+));
+
 const LiveTile=React.memo(({ch,isMain,onFocus,hasAudio,onAudio,vol,onVol})=>{
   const vRef=useRef(null),hlsRef=useRef(null),cRef=useRef(null);
   const[hasVid,setHasVid]=useState(false),[err,setErr]=useState(false),[inView,setInView]=useState(false),[playing,setPlaying]=useState(true);
@@ -802,6 +836,9 @@ const LiveTile=React.memo(({ch,isMain,onFocus,hasAudio,onAudio,vol,onVol})=>{
   if(ch.type==='youtube') {
     return <div onMouseMove={resetIdle} onTouchStart={resetIdle} onMouseLeave={()=>setIdle(true)} className="w-full h-full aspect-video"><YoutubeLiveTile ch={ch} isMain={isMain} onFocusClick={handleFocusClick} idle={idle} hasAudio={hasAudio}/></div>;
   }
+  if(ch.type==='iframe') {
+    return <div onMouseMove={resetIdle} onTouchStart={resetIdle} onMouseLeave={()=>setIdle(true)} className="w-full h-full aspect-video"><EmbedLiveTile ch={ch} isMain={isMain} onFocusClick={handleFocusClick} idle={idle}/></div>;
+  }
 
   if(err)return(
     <div ref={cRef} onClick={handleFocusClick} className="w-full h-full aspect-video rounded-xl md:rounded-2xl border border-white/5 bg-[#121212] flex items-center justify-center cursor-pointer relative">
@@ -834,7 +871,7 @@ const LiveTile=React.memo(({ch,isMain,onFocus,hasAudio,onAudio,vol,onVol})=>{
 
       {/* Sleek Media Controls */}
       <div 
-        className={cn("absolute bottom-2 right-2 md:bottom-4 md:right-4 z-20 flex items-center transition-all duration-500 max-w-[calc(100%-1rem)] cursor-default", idle ? "opacity-0 translate-y-2 pointer-events-none" : "opacity-100 translate-y-0")}
+        className={cn("no-drag absolute bottom-2 right-2 md:bottom-4 md:right-4 z-20 flex items-center transition-all duration-500 max-w-[calc(100%-1rem)] cursor-default", idle ? "opacity-0 translate-y-2 pointer-events-none" : "opacity-100 translate-y-0")}
         draggable={false}
         onPointerDown={e => e.stopPropagation()}
         onMouseDown={e => e.stopPropagation()}
@@ -934,7 +971,7 @@ const LiveTvView=React.memo(({focus,setFocus})=>{
     setDragState({ index: null, pos: null });
   };
 
-  const handleDragStart = (e, index) => { dragItem.current = index; e.dataTransfer.effectAllowed = 'move'; };
+  const handleDragStart = (e, index) => { if(e.target.closest?.('.no-drag')){e.preventDefault();return;} dragItem.current = index; e.dataTransfer.effectAllowed = 'move'; };
   const handleDragOver = useCallback((e, index, layout) => {
     e.preventDefault(); e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
@@ -1045,8 +1082,9 @@ const SportCard=({match,live,fmtT,onPlay})=>{
   const hBadge=match.teams?.home?.badge?`https://streamed.pk/api/images/badge/${match.teams.home.badge}.webp`:homeLogo;
   const aBadge=match.teams?.away?.badge?`https://streamed.pk/api/images/badge/${match.teams.away.badge}.webp`:awayLogo;
   return(
-    <div onClick={()=>onPlay(match)} className="flex flex-col gap-3 group cursor-pointer outline-none w-full relative" tabIndex={0} onKeyDown={e=>{if(e.key==='Enter')onPlay(match);}}>
-      <div className="relative rounded-2xl md:rounded-3xl overflow-hidden aspect-[16/9] bg-[#121212] border border-white/5 hover:border-white/20 transition-all duration-300 flex flex-col items-center justify-center p-3 md:p-5 shadow-md hover:shadow-xl hover:-translate-y-1">
+    <div onClick={()=>{if(live)onPlay(match);}} className={cn('flex flex-col gap-3 group outline-none w-full relative',live?'cursor-pointer':'cursor-not-allowed')} tabIndex={live?0:-1} onKeyDown={e=>{if(live&&e.key==='Enter')onPlay(match);}}>
+      <div className={cn('relative rounded-2xl md:rounded-3xl overflow-hidden aspect-[16/9] bg-[#121212] border border-white/5 transition-all duration-300 flex flex-col items-center justify-center p-3 md:p-5 shadow-md',live?'hover:border-white/20 hover:shadow-xl hover:-translate-y-1':'opacity-60')}>
+
         <div className="absolute inset-0 bg-gradient-to-br from-[#1a1a1c] to-[#0a0a0c] opacity-80 pointer-events-none"/>
         <div className="absolute top-3 left-3 md:top-4 md:left-5 z-10"><span className="text-[9px] md:text-[11px] font-black uppercase tracking-widest text-white/50">{fmtSport(match.category)}</span></div>
         <div className="absolute top-3 right-3 md:top-4 md:right-5 z-10">
@@ -1081,11 +1119,11 @@ const SportCard=({match,live,fmtT,onPlay})=>{
             <h3 className="text-white/90 font-bold text-[14px] md:text-[18px] text-center leading-snug">{String(match.title||match.name)}</h3>
           </div>
         )}
-        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center z-20 backdrop-blur-[2px]">
+        {live&&<div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center z-20 backdrop-blur-[2px]">
           <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-white text-black flex items-center justify-center transform scale-75 group-hover:scale-100 transition-all duration-300 shadow-2xl">
             <Play className="w-5 h-5 md:w-6 md:h-6 fill-current ml-1"/>
           </div>
-        </div>
+        </div>}
       </div>
     </div>
   );
@@ -1116,6 +1154,10 @@ const SportsView=React.memo(({apiKey,onPlay,onCard})=>{
   },[]);
   useEffect(()=>{
     if(cat!=='Replays'||replayData)return;
+    // Replays are pulled by matching wrestling/UFC events against TMDB, so
+    // without a TMDB key none of it can load — show that instead of a
+    // silent blank screen.
+    if(!apiKey){setReplayData({ufcPPV:[],ufcFN:[],wwe:[],lucha:[]});return;}
     let ok=true;setLoadingReplays(true);
     const isNonGame=(t)=>{if(!t)return true;const lower=t.toLowerCase();return lower.includes('countdown')||lower.includes('embedded')||lower.includes('weigh-in')||lower.includes('weigh in')||lower.includes('press conference')||lower.includes('documentary')||lower.includes('road to')||lower.includes('story of')||lower.includes('q&a');};
     const exGen=[99,18,35,16,80,27,878,10751,10749,14,10402,9648,10752,37];
@@ -1155,12 +1197,22 @@ const SportsView=React.memo(({apiKey,onPlay,onCard})=>{
       </div>
       {cat==='Replays'?(
         <div className="w-full">
-          {loadingReplays?(<div className="py-32 flex justify-center"><Spin sz={8}/></div>):replayData?(<>
-            {replayData.ufcPPV?.length>0&&filteredReplays(replayData.ufcPPV).length>0&&<Row title="UFC Pay-Per-Views" data={filteredReplays(replayData.ufcPPV)} onCard={onCard} apiKey={apiKey} isReplay={true}/>}
-            {replayData.ufcFN?.length>0&&filteredReplays(replayData.ufcFN).length>0&&<Row title="UFC Fight Nights" data={filteredReplays(replayData.ufcFN)} onCard={onCard} apiKey={apiKey} isReplay={true}/>}
-            {replayData.wwe?.length>0&&filteredReplays(replayData.wwe).length>0&&<Row title="WWE Premium Live Events" data={filteredReplays(replayData.wwe)} onCard={onCard} apiKey={apiKey} isReplay={true}/>}
-            {replayData.lucha?.length>0&&filteredReplays(replayData.lucha).length>0&&<Row title="Lucha Libre" data={filteredReplays(replayData.lucha)} onCard={onCard} apiKey={apiKey} isReplay={true}/>}
-          </>):null}
+          {loadingReplays?(<div className="py-32 flex justify-center"><Spin sz={8}/></div>):replayData?((()=>{
+            const hasAny=['ufcPPV','ufcFN','wwe','lucha'].some(k=>replayData[k]?.length>0&&filteredReplays(replayData[k]).length>0);
+            if(!hasAny)return(
+              <div className="py-32 flex flex-col items-center text-white/30 px-4 md:px-12 lg:px-16">
+                <Dribbble className="w-14 h-14 md:w-16 md:h-16 mb-4 opacity-20"/>
+                <p className="text-[14px] md:text-[15px] font-bold">No replays available right now</p>
+                {!apiKey&&<p className="text-[13px] mt-2 text-white/25">Add a TMDB API key in Settings → API Keys to enable this tab</p>}
+              </div>
+            );
+            return(<>
+              {replayData.ufcPPV?.length>0&&filteredReplays(replayData.ufcPPV).length>0&&<Row title="UFC Pay-Per-Views" data={filteredReplays(replayData.ufcPPV)} onCard={onCard} apiKey={apiKey} isReplay={true}/>}
+              {replayData.ufcFN?.length>0&&filteredReplays(replayData.ufcFN).length>0&&<Row title="UFC Fight Nights" data={filteredReplays(replayData.ufcFN)} onCard={onCard} apiKey={apiKey} isReplay={true}/>}
+              {replayData.wwe?.length>0&&filteredReplays(replayData.wwe).length>0&&<Row title="WWE Premium Live Events" data={filteredReplays(replayData.wwe)} onCard={onCard} apiKey={apiKey} isReplay={true}/>}
+              {replayData.lucha?.length>0&&filteredReplays(replayData.lucha).length>0&&<Row title="Lucha Libre" data={filteredReplays(replayData.lucha)} onCard={onCard} apiKey={apiKey} isReplay={true}/>}
+            </>);
+          })()):null}
         </div>
       ):(
         <div className="px-4 md:px-12 lg:px-16 max-w-[1800px] mx-auto">
@@ -1186,151 +1238,8 @@ const SportsView=React.memo(({apiKey,onPlay,onCard})=>{
   );
 });
 
-// ─── SKIP TIMESTAMPS ─────────────────────────────────────────────────────────
-const SkipBtn = React.memo(({ mediaId, isTv, season, episode, elapsed, onSkip, settings }) => {
-  const [segments, setSegments] = useState([]);
-  const [activeSeg, setActiveSeg] = useState(null);
-  const [dismissed, setDismissed] = useState(new Set());
-  const [autoSkipped, setAutoSkipped] = useState(new Set());
-
-  useEffect(() => {
-    if (!settings?.enabled || !mediaId) return;
-    let ok = true;
-    (async () => {
-      try {
-        const urls = isTv
-          ? [
-              `${INTRODB}?path=${encodeURIComponent(`/media/tv/${mediaId}/${season}/${episode}`)}`
-            ]
-          : [
-              `${INTRODB}?path=${encodeURIComponent(`/media/movie/${mediaId}`)}`
-            ];
-
-        let data = null;
-        for (const url of urls) {
-          // No Authorization header here — the real TheIntroDB key lives only
-          // in the Netlify function's server-side environment variable.
-          const r = await fetch(url, {
-            signal: AbortSignal.timeout(5000)
-          }).catch(() => null);
-          if (r?.ok) {
-            data = await r.json();
-            break;
-          }
-        }
-        
-        if (!ok || !data) return;
-
-        const parsedSegments = [];
-        const parseTime = v => {
-          let n = Number(v);
-          if (isNaN(n)) return 0;
-          return n > 30000 ? n / 1000 : n; // Normalize ms to sec
-        };
-
-        const items = data.data || data.results || data.timestamps || data;
-        
-        if (Array.isArray(items)) {
-          items.forEach(t => {
-            const type = (t.type || t.name || '').toLowerCase();
-            if (type) {
-              parsedSegments.push({
-                id: t.id || `${type}_${t.start}`,
-                type,
-                start: parseTime(t.start ?? t.startTime ?? t.startMs ?? t.start_ms ?? t.start_time ?? 0),
-                end: parseTime(t.end ?? t.endTime ?? t.endMs ?? t.end_ms ?? t.end_time ?? 0)
-              });
-            }
-          });
-        } else if (typeof items === 'object') {
-          Object.keys(items).forEach(k => {
-            const s = items[k];
-            if (s) {
-              parsedSegments.push({
-                id: k,
-                type: k.toLowerCase(),
-                start: parseTime(s.startMs ? s.startMs / 1000 : (s.start_ms ? s.start_ms / 1000 : (s.start ?? s.startTime ?? 0))),
-                end: parseTime(s.endMs ? s.endMs / 1000 : (s.end_ms ? s.end_ms / 1000 : (s.end ?? s.endTime ?? 0)))
-              });
-            }
-          });
-        }
-        
-        if (ok) setSegments(parsedSegments.filter(s => s.end > s.start));
-      } catch {}
-    })();
-    return () => { ok = false; };
-  }, [mediaId, isTv, season, episode, settings?.enabled]);
-
-  useEffect(() => {
-    if (!segments.length || !settings?.enabled) return;
-
-    const current = segments.find(s => elapsed >= s.start && elapsed <= s.end);
-
-    if (current && settings.autoSkip && !autoSkipped.has(current.id)) {
-      setAutoSkipped(prev => new Set(prev).add(current.id));
-      setDismissed(prev => new Set(prev).add(current.id));
-      onSkip(Math.floor(current.end));
-      setActiveSeg(null);
-      return;
-    }
-
-    if (current && dismissed.has(current.id)) {
-      setActiveSeg(null);
-      return;
-    }
-
-    const enabledTypes = {
-      intro: settings.showIntro,
-      opening: settings.showIntro,
-      recap: settings.showRecap,
-      credits: settings.showCredits,
-      ending: settings.showCredits,
-      outro: settings.showCredits,
-      preview: settings.showPreview
-    };
-
-    if (current && enabledTypes[current.type]) {
-      setActiveSeg(current);
-    } else {
-      setActiveSeg(null);
-    }
-  }, [elapsed, segments, settings, autoSkipped, dismissed, onSkip]);
-
-  const handleSkip = () => {
-    if (!activeSeg) return;
-    setDismissed(prev => new Set(prev).add(activeSeg.id));
-    onSkip(Math.floor(activeSeg.end));
-    setActiveSeg(null);
-  };
-
-  const handleDismiss = (e) => {
-    e.stopPropagation();
-    if (!activeSeg) return;
-    setDismissed(prev => new Set(prev).add(activeSeg.id));
-    setActiveSeg(null);
-  };
-
-  if (!activeSeg) return null;
-
-  const labels = { intro: 'Skip Intro', recap: 'Skip Recap', credits: 'Skip Credits', preview: 'Skip Preview', outro: 'Skip Credits', opening: 'Skip Intro', ending: 'Skip Credits' };
-  const label = labels[activeSeg.type] || 'Skip';
-
-  return (
-    <div className="absolute bottom-24 right-8 z-[100] au flex items-center gap-2">
-      <button onClick={handleSkip} className="flex items-center gap-2 bg-white/95 text-black px-5 py-3 rounded-full font-bold text-[14px] md:text-[15px] shadow-[0_4px_20px_rgba(0,0,0,0.5)] outline-none hover:bg-white hover:scale-105 transition-all group">
-        <SkipForward className="w-4 h-4 md:w-5 md:h-5 group-hover:translate-x-0.5 transition-transform"/>
-        {label}
-      </button>
-      <button onClick={handleDismiss} className="w-8 h-8 md:w-10 md:h-10 bg-black/50 backdrop-blur-md text-white/70 hover:text-white rounded-full flex items-center justify-center outline-none border border-white/20 hover:bg-black/70 transition-all">
-        <X className="w-4 h-4"/>
-      </button>
-    </div>
-  );
-});
-
 // ─── PLAYER ──────────────────────────────────────────────────────────────────
-const Player=({media,config,onClose,sourceKey,vpSettings,skipSettings})=>{
+const Player=({media,config,onClose,sourceKey,vpSettings})=>{
   const[loading,setLoading]=useState(true),[err,setErr]=useState(false),[showCtrl,setShowCtrl]=useState(true);
   const[src,setSrc]=useState(''),[srcKey,setSrcKey]=useState('videasy'),[ifrKey,setIfrKey]=useState(0);
   const[elapsed,setElapsed]=useState(0),[skipTime,setSkipTime]=useState(0);
@@ -1407,24 +1316,6 @@ const Player=({media,config,onClose,sourceKey,vpSettings,skipSettings})=>{
   
   const onLoad=useCallback(()=>{if(!m.current)return;clearTimeout(loadT.current);setLoading(false);setErr(false);startElapsed(skipTime);},[skipTime,startElapsed]);
   
-  const onSkipTo=useCallback(endSec=>{
-    if(!m.current)return;
-    if (vRef.current) {
-      vRef.current.currentTime = endSec;
-      setElapsed(endSec);
-    } else {
-      setSrc(buildSrc(srcKey,endSec));
-      setSkipTime(endSec);
-      setIfrKey(k=>k+1);
-      setLoading(true);
-      setErr(false);
-      clearTimeout(loadT.current);
-      loadT.current=setTimeout(()=>{if(m.current)setLoading(false);},15000);
-      startElapsed(endSec);
-      setElapsed(endSec);
-    }
-  },[srcKey,buildSrc,startElapsed]);
-  
   useEffect(()=>{if(!isLive||!src?.includes?.('.m3u8'))return;let hls;loadHls(()=>{setLoading(false);const v=vRef.current;if(!v)return;hls=initHls(v,src,true,{onParsed:()=>v.play().catch(()=>{}),onError:(e,d)=>{if(d.fatal){if(hls&&d.type===window.Hls?.ErrorTypes?.NETWORK_ERROR)hls.startLoad();else if(hls&&d.type===window.Hls?.ErrorTypes?.MEDIA_ERROR)hls.recoverMediaError();else{if(hls)hls.destroy();setErr(true);}}}});});return()=>{if(hls)hls.destroy();};},[isLive,src]);
   
   const mMove=useCallback(()=>{setShowCtrl(true);clearTimeout(ctrlT.current);ctrlT.current=setTimeout(()=>{if(m.current)setShowCtrl(false);},3500);},[]);
@@ -1467,7 +1358,6 @@ const Player=({media,config,onClose,sourceKey,vpSettings,skipSettings})=>{
           </div>
         )}
       </div>
-      {!isLive&&skipSettings?.enabled&&<SkipBtn mediaId={media.id} isTv={isTv} season={cfg.season} episode={cfg.episode} elapsed={elapsed} onSkip={onSkipTo} settings={skipSettings}/>}
     </div>
   );
 };
@@ -1712,7 +1602,6 @@ const SettingsView=({settings,save,user})=>{
   const set=(k,v)=>save(s=>({...s,[k]:v instanceof Function?v(s[k]):v}));
   const setN=(k,sk,v)=>set(k,p=>({...(p||{}),[sk]:v}));
   const vp={...DEFAULT_VP,...(settings.vp||{})};
-  const sk={...DEFAULT_SK,...(settings.skip||{})};
   const cc={...DEFAULT_CC,...(settings.cc||{})};
   const getTs=s=>({dropshadow:'0 2px 6px rgba(0,0,0,.9)',raised:'-1px -1px 0 rgba(255,255,255,.2)',outline:'-1.5px -1.5px 0 #000,1.5px -1.5px 0 #000,-1.5px 1.5px 0 #000,1.5px 1.5px 0 #000',none:'none'}[s]||'none');
   const Toggle=({v,on})=><button onClick={on} className={cn('w-11 h-6 md:w-12 md:h-7 rounded-full transition-colors relative shrink-0 outline-none border border-white/10',v?'bg-white':'bg-white/10')}><div className={cn('w-5 h-5 md:w-6 md:h-6 bg-[#000] rounded-full absolute top-[1px] transition-transform shadow',v?'translate-x-[22px] md:translate-x-5':'translate-x-[1px]')}/></button>;
@@ -1747,11 +1636,6 @@ const SettingsView=({settings,save,user})=>{
             </div>
             <div className="px-6 md:px-10 divide-y divide-white/5">
               <InfoRow l="Auto-next episode"><Toggle v={vp.autoNext!==false} on={()=>setN('vp','autoNext',!(vp.autoNext!==false))}/></InfoRow>
-              <InfoRow l="Skip Timestamps" s="Powered by TheIntroDB"><Toggle v={sk.enabled} on={()=>set('skip',p=>({...p,enabled:!p.enabled}))}/></InfoRow>
-              {sk.enabled&&(<div className="py-5 md:py-6 space-y-4 md:space-y-5">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">{[['Intro','showIntro'],['Recap','showRecap'],['Credits','showCredits'],['Preview','showPreview']].map(([l,k])=><button key={k} onClick={()=>set('skip',p=>({...p,[k]:!p[k]}))} className={cn('py-3.5 md:py-4 rounded-xl md:rounded-2xl text-[13px] md:text-[14px] font-bold border transition-all outline-none',sk[k]?'bg-white/30 text-white border-white/40':'bg-white/5 border-white/5 text-white/50 hover:text-white hover:bg-white/10')}>{l}</button>)}</div>
-                <InfoRow l="Auto-skip"><Toggle v={sk.autoSkip} on={()=>set('skip',p=>({...p,autoSkip:!p.autoSkip}))}/></InfoRow>
-              </div>)}
             </div>
           </>)}
           {sec==='display'&&(
@@ -1793,7 +1677,7 @@ const SettingsView=({settings,save,user})=>{
           )}
           {sec==='api'&&(
             <div className="p-6 md:p-10 space-y-8 md:space-y-10">
-              {[{l:'TMDB API Key',s:'Required for metadata',k:'apiKey',ph:'Enter API key…',link:'https://www.themoviedb.org/settings/api'},{l:'OMDb API Key',s:'Enables IMDb ratings',k:'omdbKey',ph:'e.g. 93a6d7d6',link:'https://www.omdbapi.com/apikey.aspx'}].map(({l,s,k,ph,link})=>(
+              {[{l:'TMDB API Key',s:'Required for metadata',k:'apiKey',ph:'Enter API key…',link:'https://www.themoviedb.org/settings/api'},{l:'OMDb API Key',s:'Enables IMDb ratings',k:'omdbKey',ph:'Enter API key…',link:'https://www.omdbapi.com/apikey.aspx'}].map(({l,s,k,ph,link})=>(
                 <div key={k}>
                   <div className="flex items-start justify-between mb-3 md:mb-4">
                     <div><p className="text-white/95 font-bold text-[16px] md:text-[18px] tracking-tight">{l}</p><p className="text-white/60 text-[13px] md:text-[14px] mt-1 font-bold">{s} — <a href={link} target="_blank" rel="noreferrer" className="text-white/90 hover:text-white underline">Get key</a></p></div>
@@ -2062,7 +1946,6 @@ export default function App(){
   if(!loaded)return<div className="min-h-screen bg-[#050505] flex items-center justify-center"><G/><Spin sz={12}/></div>;
   const apiKey=settings.apiKey;
   const vpS={...DEFAULT_VP,...(settings.vp||{})};
-  const skipS={...DEFAULT_SK,...(settings.skip||{})};
   const algoPrefs=settings.algoPrefs||{excluded:[],boosted:[]};
   return(
     <div className="min-h-screen bg-[#050505] text-[#f5f5f7] overflow-x-hidden selection:bg-white/30 selection:text-white">
@@ -2121,7 +2004,7 @@ export default function App(){
         onPerson={setSelPerson} onCard={setSelMedia}
       />
       {selPerson&&<PersonModal id={selPerson} apiKey={apiKey} onClose={()=>setSelPerson(null)} onCard={m=>{setSelPerson(null);setSelMedia(m);}}/>}
-      {playMedia&&<Player media={playMedia} config={playCfg} onClose={handlePlayerClose} sourceKey={settings.sourceKey} vpSettings={vpS} skipSettings={skipS}/>}
+      {playMedia&&<Player media={playMedia} config={playCfg} onClose={handlePlayerClose} sourceKey={settings.sourceKey} vpSettings={vpS}/>}
     </div>
   );
 }
